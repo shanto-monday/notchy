@@ -36,6 +36,7 @@ sealed class Services : IDisposable
         Clips = new Clips(form);
         Notifs = new Notifs(form);
         Notifs.OnNew = n => { if (Prefs.NotifPeek) form.BeginInvoke(() => form.PeekNotif(n)); };
+        Notifs.IsMuted = app => Prefs.MutedApps.Any(a => string.Equals(a, app, StringComparison.OrdinalIgnoreCase));
         Notifs.Start();
         Bt.Refresh(true);
         notes = File.Exists(NotesPath) ? File.ReadAllText(NotesPath) : "";
@@ -49,7 +50,8 @@ sealed class Services : IDisposable
         version = Program.Version,
         notes,
         hasGpu = Sys.HasGpu,
-        prefs = new { peekOnSong = Prefs.PeekOnSong, notifPeek = Prefs.NotifPeek, startWithWindows = SafeStart() }
+        prefs = new { peekOnSong = Prefs.PeekOnSong, notifPeek = Prefs.NotifPeek, startWithWindows = SafeStart() },
+        muted = Prefs.MutedApps
     };
 
     static bool SafeStart() { try { return Program.StartWithWindows; } catch { return false; } }
@@ -71,6 +73,7 @@ sealed class Services : IDisposable
             bt = tab is "bluetooth" or "overview" ? Bt.Read() : null,
             notifs = tab is "notifications" or "overview" ? Notifs.List() : null,
             notifAllowed = Notifs.Allowed,
+            muted = Prefs.MutedApps,
             shelf = tab is "shelf" or "overview" ? Shelf.List() : null,
             ai = tab is "ai" or "overview" ? Ai.Read() : null,
             toggles = new { keepAwake, mic = Audio.MicMuted, dark = DarkMode }
@@ -152,6 +155,14 @@ sealed class Services : IDisposable
             case "btSettings": Run("ms-settings:bluetooth"); break;
             case "notifDel": Notifs.Remove((string)m["id"]); break;
             case "notifClear": Notifs.Clear(); break;
+            case "notifMute":
+                {
+                    string app = (string)m["app"] ?? "";
+                    if (app != "" && !Prefs.MutedApps.Contains(app, StringComparer.OrdinalIgnoreCase)) { Prefs.MutedApps.Add(app); Prefs.Save(); Notifs.Poll(); }
+                    form.Send(new { type = "toast", text = "Notifications from " + app + " are off" });
+                    break;
+                }
+            case "notifUnmute": Prefs.MutedApps.RemoveAll(a => string.Equals(a, (string)m["app"], StringComparison.OrdinalIgnoreCase)); Prefs.Save(); break;
             case "notifSettings": Run("ms-settings:privacy-notifications"); break;
             case "expand": form.Expand(false); break;
             case "openUrl": try { Process.Start(new ProcessStartInfo((string)m["url"]) { UseShellExecute = true }); } catch { } break;
@@ -298,6 +309,7 @@ sealed class Prefs
 {
     public bool PeekOnSong { get; set; } = true;
     public bool NotifPeek { get; set; } = true;
+    public List<string> MutedApps { get; set; } = new();
     static string P => Path.Combine(Program.DataDir, "prefs.json");
     public static Prefs Load() { try { return JsonSerializer.Deserialize<Prefs>(File.ReadAllText(P)) ?? new(); } catch { return new(); } }
     public void Save() { try { File.WriteAllText(P, JsonSerializer.Serialize(this)); } catch { } }

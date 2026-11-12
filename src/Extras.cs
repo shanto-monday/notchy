@@ -236,6 +236,7 @@ sealed class Notifs
     bool started, first = true, busy;
     public bool Allowed;
     public Action<Item> OnNew;
+    public Func<string, bool> IsMuted = _ => false;   // apps the user turned off
 
     public Notifs(NotchForm form) { this.form = form; }
 
@@ -277,6 +278,7 @@ sealed class Notifs
                 }
                 catch { }
                 if (title == "" && body == "") continue;
+                if (IsMuted(app)) { seen.Add(n.Id); continue; }
                 var item = new Item { Id = n.Id.ToString(), App = app, Title = title, Body = body, Logo = logo, Ago = Ago(n.CreationTime.LocalDateTime) };
                 items.Add(item);
                 if (seen.Add(n.Id) && !first) OnNew?.Invoke(item);

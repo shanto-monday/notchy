@@ -344,7 +344,9 @@ body.dragging #drop{display:flex}
       <div class="kv" style="min-height:48px"><span style="color:#fff">Show the song when it changes</span><div class="sw" data-p="peekOnSong"></div></div><div class="sep" style="margin:0"></div>
       <div class="kv" style="min-height:48px"><span style="color:#fff">Open from the keyboard</span><b>Ctrl + Alt + N</b></div><div class="sep" style="margin:0"></div>
       <div class="kv" style="min-height:48px"><span style="color:#fff">Version</span><b id="ver"></b></div>
-    </div></section>
+    </div>
+    <div class="modh" style="margin:6px 4px 0"><b style="font-size:15px">Apps with notifications off</b></div>
+    <div class="mod" style="padding:2px 14px" id="mutedList"></div></section>
   </main>
   <div id="drop">Drop to put it on the shelf</div>
   <div class="toast" id="toast"></div>
@@ -373,6 +375,7 @@ const mins=m=>{m=Math.round(m||0);return m>=1440?Math.floor(m/1440)+'d '+Math.fl
 const W=v=>v>=0?(v>=100?Math.round(v):v.toFixed(1))+' W':'-';
 const CHEV='<svg class="chev"><path d="m9 18 6-6-6-6"/></svg>';
 const X='<svg><path d="M18 6 6 18M6 6l12 12"/></svg>';
+const BELLOFF='<svg><path d="M8.7 3A6 6 0 0 1 18 8c0 2.7.6 4.6 1.3 6M17 17H3s3-2 3-9a5.9 5.9 0 0 1 .3-1.8M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20"/></svg>';
 const BT_ICONS={headphones:'<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>',mouse:'<rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v4"/>',keyboard:'<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',phone:'<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>',speaker:'<rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M12 6h.01"/>',gamepad:'<path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><rect x="2" y="6" width="20" height="12" rx="6"/>',watch:'<circle cx="12" cy="12" r="6"/><path d="M12 10v2l1 1M9 4h6l1 3M9 20h6l1-3"/>',device:'<path d="m7 7 10 10-5 5V2l5 5L7 17"/>'};
 const btIcon=k=>`<svg>${BT_ICONS[k]||BT_ICONS.device}</svg>`;
 const battery=p=>p<0?'':`<span class="bat">${p}%<span class="batt ${p<=20?'low':''}"><i style="width:${Math.max(6,p)}%"></i></span></span>`;
@@ -459,13 +462,14 @@ function renderBt(list){if(!list)return;const on=list.filter(d=>d.connected);
   $('#btList').innerHTML=list.length?list.map(d=>`<div class="li"><span class="ico" style="background:${d.connected?'#0a84ff':'#3a3a3c'};color:#fff">${btIcon(d.kind)}</span><span class="t"><b class="ell">${esc(d.name)}</b><span>${d.connected?'Connected':'Not connected'}</span></span>${d.connected?battery(d.battery):''}</div>`).join(''):'<div class="empty" style="padding:14px 2px">No Bluetooth devices paired.</div>'}
 
 // notifications
-function notifHtml(n,full){return `<div class="notif"><span class="ico">${n.logo?`<img src="${n.logo}">`:'<svg><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg>'}</span><div class="t"><div class="a"><span class="ell">${esc(n.app||'App')}</span><span>${n.ago}</span></div><b class="ell">${esc(n.title)}</b>${n.body?`<p>${esc(n.body)}</p>`:''}</div>${full?`<button class="x" data-nd="${n.id}">${X}</button>`:''}</div>`}
+function notifHtml(n,full){return `<div class="notif"><span class="ico">${n.logo?`<img src="${n.logo}">`:'<svg><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg>'}</span><div class="t"><div class="a"><span class="ell">${esc(n.app||'App')}</span><span>${n.ago}</span></div><b class="ell">${esc(n.title)}</b>${n.body?`<p>${esc(n.body)}</p>`:''}</div>${full?`<div style="display:flex;flex-direction:column;gap:2px"><button class="x" data-nd="${n.id}" data-tip="Dismiss">${X}</button><button class="x" data-nm="${esc(n.app)}" data-tip="Turn off for ${esc(n.app||'this app')}">${BELLOFF}</button></div>`:''}</div>`}
 let lastNotifCount=-1;
 function renderNotifs(list,allowed){if(!list)return;
   const off=!allowed?'<div class="empty" style="padding:12px 2px">Windows is not sharing notifications with Notchy. <button class="link" data-c="notifSettings">Open settings</button></div>':'';
   $('#nList').innerHTML=off||(list.length?list.map(n=>notifHtml(n,true)).join(''):'<div class="empty" style="padding:14px 2px">You\'re all caught up.</div>');
   if(lastNotifCount>=0&&list.length>lastNotifCount&&tab!=='notifications')$('#tbN').classList.add('has');lastNotifCount=list.length}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-nd]');if(b)post({cmd:'notifDel',id:b.dataset.nd})});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-nd]');if(b)post({cmd:'notifDel',id:b.dataset.nd});const m=e.target.closest('[data-nm]');if(m&&m.dataset.nm)post({cmd:'notifMute',app:m.dataset.nm});const u=e.target.closest('[data-um]');if(u)post({cmd:'notifUnmute',app:u.dataset.um})});
+function renderMuted(list){if(!list)return;$('#mutedList').innerHTML=list.length?list.map(a=>`<div class="kv" style="min-height:44px"><span style="color:#fff">${esc(a)}</span><button class="link" data-um="${esc(a)}">Turn on</button></div>`).join('<div class="sep" style="margin:0"></div>'):'<div class="empty" style="padding:12px 0">None. Use the bell button on a notification to turn an app off.</div>'}
 
 // clipboard
 let clips=[];$('#cs').oninput=renderClips;
@@ -527,7 +531,7 @@ function renderPeek(){
 
 chrome.webview.addEventListener('message',e=>{const d=e.data;
   switch(d.type){
-    case 'init':$('#notes').value=d.notes||'';$('#ver').textContent=d.version;for(const p of ['peekOnSong','notifPeek','startWithWindows'])$(`[data-p=${p}]`).classList.toggle('on',!!d.prefs[p]);break;
+    case 'init':renderMuted(d.muted);$('#notes').value=d.notes||'';$('#ver').textContent=d.version;for(const p of ['peekOnSong','notifPeek','startWithWindows'])$(`[data-p=${p}]`).classList.toggle('on',!!d.prefs[p]);break;
     case 'open':isOpen=true;document.body.className='open';if(d.tab&&d.tab!==tab)setTab(d.tab);break;
     case 'peek':document.body.className='peek';if(Date.now()>peekUntil)peekKind='song';renderPeek();break;
     case 'close':isOpen=false;document.body.className='';tip.style.opacity=0;break;
@@ -535,7 +539,7 @@ chrome.webview.addEventListener('message',e=>{const d=e.data;
     case 'notif':peekKind='notif';peekNotif=d.n;peekUntil=Date.now()+5000;renderPeek();$('#tbN').classList.add('has');break;
     case 'timerDone':peekKind='timer';peekUntil=Date.now()+3500;renderPeek();break;
     case 'meters':renderMeters(d.items);break;
-    case 'live':S=d;renderMedia(d.media);renderToggles(d.toggles);renderSys(d.sys);renderMixer(d);renderDisplays(d.displays);renderBt(d.bt);renderNotifs(d.notifs,d.notifAllowed);
+    case 'live':S=d;renderMedia(d.media);renderToggles(d.toggles);renderSys(d.sys);renderMixer(d);renderDisplays(d.displays);renderBt(d.bt);renderNotifs(d.notifs,d.notifAllowed);renderMuted(d.muted);
       if(d.clips){clips=d.clips;renderClips()}renderShelf(d.shelf);renderAi(d.ai);if(document.body.classList.contains('peek'))renderPeek();break;
   }});
 setInterval(()=>{const m=S.media;if(m&&m.playing&&m.dur){m.pos=Math.min(m.dur,m.pos+.25);$('#mbar').style.width=(m.pos/m.dur*100)+'%'}},250);
