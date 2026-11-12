@@ -12,7 +12,7 @@ namespace Notchy;
 sealed class NotchForm : Form
 {
     // sizes in 96-dpi units
-    const int PanelW = 440, PanelMax = 700, PillW = 200, PillH = 9, PeekW = 380, PeekH = 72, Hidden = 12, Radius = 22;
+    const int PanelW = 440, PanelMax = 720, PillW = 200, PillH = 9, PeekW = 400, PeekH = 76, Hidden = 12, Radius = 22;
 
     readonly WebView2 web = new() { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.Black };
     readonly System.Windows.Forms.Timer poll = new() { Interval = 30 };
@@ -192,6 +192,12 @@ sealed class NotchForm : Form
         if (pinned) Activate();
         Send(new { type = "open", tab });
         BeginInvoke(PushLive);
+    }
+
+    public void PeekNotif(object n)
+    {
+        Send(new { type = "notif", n });
+        if (state == State.Closed) { Peek(); peekUntil = DateTime.Now.AddSeconds(5); }
     }
 
     public void Peek()

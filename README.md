@@ -8,6 +8,10 @@ A MacBook-style notch for Windows. Move your mouse to the top middle of the scre
 Move your mouse to the top middle of the screen (or press Ctrl + Alt + N). A panel drops down from the notch. The row of icons at the top jumps straight to each section, and the Overview tiles open the full view of what they show.
 
 ## What's inside
+- **Control Centre** (home): round quick toggles, now playing, big brightness and volume sliders, CPU / GPU / power / network, Bluetooth devices with battery, latest notifications and clipboard.
+- **Displays**: brightness slider and on/off switch for every monitor (DDC/CI), all screens off.
+- **Notifications**: Windows notifications pop out of the notch and are listed in one place.
+- **Bluetooth**: paired devices, connected or not, with battery level.
 - **Now playing**: song, artwork, play/pause/skip and seek for Spotify, YouTube, any app in the Windows media flyout. Shows a small pop-up when the song changes.
 - **Volume mixer**: master volume plus a slider, mute button and live level for every app making sound.
 - **System**: CPU, RAM, NVIDIA GPU load, temperature and VRAM with live graphs, disk space, uptime, and the apps using the most memory.

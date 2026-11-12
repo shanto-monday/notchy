@@ -19,6 +19,10 @@ sealed class Services : IDisposable
     public readonly Shelf Shelf = new();
     public readonly AiUsage Ai = new();
     public readonly Prefs Prefs = Prefs.Load();
+    public readonly Displays Displays = new();
+    public readonly Bluetooth Bt = new();
+    public readonly Notifs Notifs;
+    int ticks;
     string notes;
     bool keepAwake;
     // timer: countdown or stopwatch
@@ -30,6 +34,10 @@ sealed class Services : IDisposable
     {
         this.form = form;
         Clips = new Clips(form);
+        Notifs = new Notifs(form);
+        Notifs.OnNew = n => { if (Prefs.NotifPeek) form.BeginInvoke(() => form.PeekNotif(n)); };
+        Notifs.Start();
+        Bt.Refresh(true);
         notes = File.Exists(NotesPath) ? File.ReadAllText(NotesPath) : "";
         Media.TrackChanged += () => { if (Prefs.PeekOnSong) form.BeginInvoke(form.Peek); };
         Media.Start();
@@ -41,7 +49,7 @@ sealed class Services : IDisposable
         version = Program.Version,
         notes,
         hasGpu = Sys.HasGpu,
-        prefs = new { peekOnSong = Prefs.PeekOnSong, startWithWindows = SafeStart() }
+        prefs = new { peekOnSong = Prefs.PeekOnSong, notifPeek = Prefs.NotifPeek, startWithWindows = SafeStart() }
     };
 
     static bool SafeStart() { try { return Program.StartWithWindows; } catch { return false; } }
@@ -58,7 +66,11 @@ sealed class Services : IDisposable
             master = new { vol = mv, mute = mm, output = tab is "volume" or "overview" ? Audio.OutputName : "" },
             sys = sys ? Sys.Read(true) : null,
             apps = tab == "volume" ? Audio.Apps() : null,
-            clips = tab == "clipboard" ? Clips.List() : null,
+            clips = tab is "clipboard" or "overview" ? Clips.List() : null,
+            displays = tab is "display" or "overview" ? Displays.List() : null,
+            bt = tab is "bluetooth" or "overview" ? Bt.Read() : null,
+            notifs = tab is "notifications" or "overview" ? Notifs.List() : null,
+            notifAllowed = Notifs.Allowed,
             shelf = tab is "shelf" or "overview" ? Shelf.List() : null,
             ai = tab is "ai" or "overview" ? Ai.Read() : null,
             toggles = new { keepAwake, mic = Audio.MicMuted, dark = DarkMode }
@@ -74,6 +86,7 @@ sealed class Services : IDisposable
 
     public void Tick()
     {
+        if (++ticks % 2 == 0) Notifs.Poll();
         if (timerEnd.HasValue && DateTime.Now >= timerEnd.Value)
         {
             timerEnd = null; timerLeft = 0;
@@ -126,11 +139,20 @@ sealed class Services : IDisposable
                 {
                     string name = (string)m["name"]; bool on = (bool)m["on"];
                     if (name == "peekOnSong") { Prefs.PeekOnSong = on; Prefs.Save(); }
+                    if (name == "notifPeek") { Prefs.NotifPeek = on; Prefs.Save(); }
                     if (name == "startWithWindows") try { Program.StartWithWindows = on; } catch { }
                     break;
                 }
             case "aiRefresh": Ai.Refresh(force: true); break;
             case "util": Util((string)m["name"]); break;
+            case "bright": Displays.SetBrightness((int)m["idx"], (int)m["v"]); break;
+            case "monPower": Displays.SetPower((int)m["idx"], (bool)m["on"]); break;
+            case "displaysRefresh": Displays.Refresh(true); break;
+            case "btRefresh": Bt.Refresh(true); break;
+            case "btSettings": Run("ms-settings:bluetooth"); break;
+            case "notifDel": Notifs.Remove((string)m["id"]); break;
+            case "notifClear": Notifs.Clear(); break;
+            case "notifSettings": Run("ms-settings:privacy-notifications"); break;
             case "expand": form.Expand(false); break;
             case "openUrl": try { Process.Start(new ProcessStartInfo((string)m["url"]) { UseShellExecute = true }); } catch { } break;
         }
@@ -214,7 +236,7 @@ sealed class Services : IDisposable
         }
     }
 
-    public void Dispose() { Clips.Dispose(); if (keepAwake) SetThreadExecutionState(0x80000000u); }
+    public void Dispose() { Displays.Dispose(); Clips.Dispose(); if (keepAwake) SetThreadExecutionState(0x80000000u); }
 
     [DllImport("user32.dll")] static extern bool LockWorkStation();
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr w, IntPtr l);
@@ -227,6 +249,7 @@ sealed class Services : IDisposable
 sealed class Prefs
 {
     public bool PeekOnSong { get; set; } = true;
+    public bool NotifPeek { get; set; } = true;
     static string P => Path.Combine(Program.DataDir, "prefs.json");
     public static Prefs Load() { try { return JsonSerializer.Deserialize<Prefs>(File.ReadAllText(P)) ?? new(); } catch { return new(); } }
     public void Save() { try { File.WriteAllText(P, JsonSerializer.Serialize(this)); } catch { } }
