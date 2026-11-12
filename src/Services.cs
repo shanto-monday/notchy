@@ -215,11 +215,59 @@ sealed class Services : IDisposable
             case "dark": DarkMode = !DarkMode; break;
             case "recycle": SHEmptyRecycleBin(IntPtr.Zero, null, 0); break; // Windows asks to confirm
             case "desktop": form.Collapse(); Task.Delay(250).ContinueWith(_ => { keybd_event(0x5B, 0, 0, 0); keybd_event(0x44, 0, 0, 0); keybd_event(0x44, 0, 2, 0); keybd_event(0x5B, 0, 2, 0); }); break;
-            case "screenshot": form.Collapse(); Task.Delay(300).ContinueWith(_ => { keybd_event(0x5B, 0, 0, 0); keybd_event(0x10, 0, 0, 0); keybd_event(0x53, 0, 0, 0); keybd_event(0x53, 0, 2, 0); keybd_event(0x10, 0, 2, 0); keybd_event(0x5B, 0, 2, 0); }); break;
+            case "screenshot": form.Collapse(); Screenshot(); break;
         }
     }
 
-    const string Personalize = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+    // Lightshot if it is installed (select area, then pen / arrow / text / marker / copy), else the Windows snipping tool
+    static readonly string[] LightshotPaths = {
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Skillbrains\lightshot\Lightshot.exe"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Skillbrains\lightshot\Lightshot.exe"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Skillbrains\lightshot\Lightshot.exe") };
+    static void Screenshot()
+    {
+        Task.Run(async () =>
+        {
+            string ls = LightshotPaths.FirstOrDefault(File.Exists);
+            if (ls != null)
+            {
+                bool running = Process.GetProcessesByName("Lightshot").Length > 0;
+                if (!running) { try { Process.Start(new ProcessStartInfo(ls) { UseShellExecute = true }); } catch { ls = null; } await Task.Delay(1800); }
+                else await Task.Delay(250);
+            }
+            else await Task.Delay(250);
+            if (ls != null)
+            {
+                keybd_event(0x2C, 0, 0, 0); keybd_event(0x2C, 0, 2, 0); // Print Screen -> Lightshot
+                for (int i = 0; i < 10; i++) { await Task.Delay(120); if (LightshotOverlayUp()) return; }
+            }
+            // no Lightshot (or Windows still owns Print Screen): Windows snipping tool
+            keybd_event(0x5B, 0, 0, 0); keybd_event(0x10, 0, 0, 0); keybd_event(0x53, 0, 0, 0); keybd_event(0x53, 0, 2, 0); keybd_event(0x10, 0, 2, 0); keybd_event(0x5B, 0, 2, 0);
+        });
+    }
+
+    // Lightshot's capture layer is a visible window of its process that covers the screen
+    static bool LightshotOverlayUp()
+    {
+        var pids = Process.GetProcessesByName("Lightshot").Select(p => { int id = p.Id; p.Dispose(); return (uint)id; }).ToHashSet();
+        if (pids.Count == 0) return false;
+        var scr = Screen.PrimaryScreen!.Bounds; bool found = false;
+        EnumWindows((h, _) =>
+        {
+            GetWindowThreadProcessId(h, out uint pid);
+            if (pids.Contains(pid) && IsWindowVisible(h) && GetWindowRect(h, out var r) && (r.R - r.L) >= scr.Width * 0.9 && (r.B - r.T) >= scr.Height * 0.9) { found = true; return false; }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+    delegate bool EnumWindowsProc(IntPtr h, IntPtr l);
+    [StructLayout(LayoutKind.Sequential)] struct RECT { public int L, T, R, B; }
+    [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc cb, IntPtr l);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
+
+    const string Personalize =@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
     static bool DarkMode
     {
         get { try { using var k = Registry.CurrentUser.OpenSubKey(Personalize); return (int)(k?.GetValue("AppsUseLightTheme") ?? 1) == 0; } catch { return false; } }

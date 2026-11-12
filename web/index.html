@@ -20,8 +20,11 @@ body.peek #app{display:none}
 .press:active{transform:scale(.96)}
 
 /* top bar */
-.tabs{display:flex;justify-content:space-between;background:var(--m);border-radius:18px;padding:5px;margin-bottom:12px}
-.tb{width:40px;height:34px;border-radius:13px;display:grid;place-items:center;color:var(--sub);position:relative;transition:background .18s,color .18s}
+.topbar{display:flex;gap:8px;margin-bottom:12px}
+.tabs{flex:1;display:flex;justify-content:space-between;background:var(--m);border-radius:18px;padding:5px}
+.shot{width:46px;border-radius:18px;background:var(--acc);display:grid;place-items:center;flex:none}
+.shot svg{width:20px;height:20px}
+.tb{width:36px;height:34px;border-radius:13px;display:grid;place-items:center;color:var(--sub);position:relative;transition:background .18s,color .18s}
 .tb:hover{color:var(--text)}
 .tb.on{background:var(--m3);color:var(--text)}
 .tb .dot{position:absolute;top:5px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--bad);display:none}
@@ -205,18 +208,18 @@ body.dragging #drop{display:flex}
 </style></head>
 <body>
 <div id="app">
-  <nav class="tabs">
-    <button class="tb on" data-t="overview" data-tip="Control Centre"><svg><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></button>
-    <button class="tb" data-t="display" data-tip="Displays"><svg><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
-    <button class="tb" data-t="volume" data-tip="Sound"><svg><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></button>
+  <div class="topbar"><nav class="tabs">
+    <button class="tb on" data-t="overview" data-tip="Home"><svg><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></button>
     <button class="tb" data-t="bluetooth" data-tip="Bluetooth"><svg><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg></button>
-    <button class="tb" data-t="notifications" data-tip="Notifications" id="tbN"><svg><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><i class="dot"></i></button>
     <button class="tb" data-t="clipboard" data-tip="Clipboard"><svg><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button>
-    <button class="tb" data-t="system" data-tip="System"><svg><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></button>
-    <button class="tb" data-t="power" data-tip="Power"><svg><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></button>
+    <button class="tb" data-t="notes" data-tip="Notes"><svg><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+    <button class="tb" data-t="ai" data-tip="AI usage"><svg><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></button>
+    <button class="tb" data-t="system" data-tip="System and power"><svg><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></button>
+    <button class="tb" data-t="display" data-tip="Displays"><svg><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+    <button class="tb" data-t="notifications" data-tip="Notifications" id="tbN"><svg><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><i class="dot"></i></button>
     <button class="tb" data-t="more" data-tip="More"><svg><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
-  </nav>
-  <div class="sech"><div class="row" style="gap:0"><button class="back" id="back"><svg><path d="m15 18-6-6 6-6"/></svg>More</button><b id="secTitle">Control Centre</b></div><span id="secAct"></span></div>
+  </nav><button class="shot press" data-g="screenshot" data-tip="Screenshot and mark up"><svg><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button></div>
+  <div class="sech"><div class="row" style="gap:0"><button class="back" id="back"><svg><path d="m15 18-6-6 6-6"/></svg>More</button><b id="secTitle">Home</b></div><span id="secAct"></span></div>
 
   <main>
     <!-- CONTROL CENTRE -->
@@ -240,18 +243,12 @@ body.dragging #drop{display:flex}
       <div class="grid4">
         <button class="stat press" data-go="system"><span>CPU</span><b id="oCpu">0%</b><small id="oCpuS">&nbsp;</small></button>
         <button class="stat press" data-go="system" id="oGpuT"><span>GPU</span><b id="oGpu">-</b><small id="oGpuS">&nbsp;</small></button>
-        <button class="stat press" data-go="power"><span>Power</span><b id="oPow">-</b><small>CPU + GPU</small></button>
-        <button class="stat press" data-go="network"><span>Network</span><b id="oNet">0</b><small id="oNetS">&nbsp;</small></button>
+        <button class="stat press" data-go="system"><span>Memory</span><b id="oRam">0%</b><small id="oRamS">&nbsp;</small></button>
+        <button class="stat press" data-go="system"><span>Power</span><b id="oPow">-</b><small>CPU + GPU</small></button>
       </div>
       <div class="mod"><div class="modh"><b>Bluetooth</b><button class="more" data-go="bluetooth">All<svg><path d="m9 18 6-6-6-6"/></svg></button></div><div class="chips" id="oBt"></div></div>
-      <div class="mod"><div class="modh"><b>Notifications</b><button class="more" data-go="notifications">All<svg><path d="m9 18 6-6-6-6"/></svg></button></div><div id="oNotif"></div></div>
+      
       <div class="mod"><div class="modh"><b>Clipboard</b><button class="more" data-go="clipboard">All<svg><path d="m9 18 6-6-6-6"/></svg></button></div><div id="oClips"></div></div>
-      <div class="mod timer">
-        <span class="tv disp" id="tleft">0:00</span>
-        <button class="pill" data-s="300">5m</button><button class="pill" data-s="900">15m</button><button class="pill" data-s="1500">25m</button>
-        <div class="grow"></div>
-        <button class="pill org" id="tgo">Start</button><button class="x" id="treset" data-tip="Reset" style="width:30px;height:30px"><svg style="width:15px;height:15px"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8M3 3v5h5"/></svg></button>
-      </div>
     </section>
 
     <!-- DISPLAYS -->
@@ -288,30 +285,26 @@ body.dragging #drop{display:flex}
         <div class="kv"><span>Temperature</span><b id="sGpuT">-</b></div><div class="kv"><span>Video memory</span><b id="sVram">-</b></div></div>
       <div class="mod"><div class="kv"><span>Memory</span><b id="sRam">-</b></div><svg class="spark" id="spRam" viewBox="0 0 60 44" preserveAspectRatio="none"></svg><div class="sep"></div><div id="sTop"></div></div>
       <div class="mod"><div class="kv"><span>Disk free</span><b id="sDisk">-</b></div><div class="kv"><span>Up for</span><b id="sUp">-</b></div></div>
-    </section>
-
-    <!-- POWER -->
-    <section class="view" id="v-power">
+      <div class="modh" style="margin:6px 4px 0"><b style="font-size:15px">Power</b><button class="link" data-u2="power">Settings</button></div>
       <div class="mod"><div class="kv"><span>CPU + GPU now</span><b class="big disp" id="pTot">-</b></div><svg class="spark" id="spPow" viewBox="0 0 60 44" preserveAspectRatio="none" style="height:70px"></svg></div>
       <div class="mod"><div class="kv"><span>Processor</span><b id="pCpu">-</b></div><div class="kv" id="pGpuRow"><span>Graphics card</span><b id="pGpu">-</b></div><div class="kv" id="pBatRow"><span>Battery</span><b id="pBat">-</b></div>
         <div class="sep"></div><div class="kv"><span>Keep the PC awake</span><div class="sw" id="pAwake"></div></div></div>
       <div class="dim" style="font-size:11.5px;padding:0 6px">Live readings from Windows and the graphics driver. Screens, drives and fans add a bit more.</div>
     </section>
 
-    <!-- NETWORK -->
-    <section class="view" id="v-network">
-      <div class="mod"><div class="row"><div class="grow"><div class="sub" style="font-size:12px">Download</div><div class="big disp" id="nDown" style="font-size:22px">0</div></div><div class="grow"><div class="sub" style="font-size:12px">Upload</div><div class="big disp" id="nUp" style="font-size:22px">0</div></div></div><svg class="spark" id="spNet" viewBox="0 0 60 44" preserveAspectRatio="none" style="height:60px"></svg></div>
-      <div class="mod"><div class="kv"><span>Downloaded since start</span><b id="nSessD">-</b></div><div class="kv"><span>Uploaded since start</span><b id="nSessU">-</b></div><div class="kv"><span>Local IP</span><b id="nIp">-</b></div></div>
-    </section>
+    
+
+    
 
     <!-- MORE -->
     <section class="view" id="v-more">
       <div class="apps">
+        <button class="appt press" data-go="volume"><i style="background:#ff375f"><svg><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></i>Sound</button>
         <button class="appt press" data-go="shelf"><i style="background:#0a84ff"><svg><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg></i>Shelf</button>
-        <button class="appt press" data-go="notes"><i style="background:#ffcc00;color:#000"><svg><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></i>Notes</button>
-        <button class="appt press" data-go="network"><i style="background:#30d158"><svg><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg></i>Network</button>
+        
+        
         <button class="appt press" data-go="utilities"><i style="background:#8e8e93"><svg><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg></i>Utilities</button>
-        <button class="appt press" data-go="ai"><i style="background:#bf5af2"><svg><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></i>AI usage</button>
+        
         <button class="appt press" data-go="settings"><i style="background:#636366"><svg><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></i>Settings</button>
       </div>
       <div class="mod" style="padding:4px 14px"><button class="util" id="fQuit"><span class="ico" style="background:#ff453a"><svg><path d="M18.4 6.6a9 9 0 1 1-12.8 0M12 2v10"/></svg></span><span class="t"><b>Quit Notchy</b></span></button></div>
@@ -369,8 +362,8 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const post=o=>{try{chrome.webview.postMessage(o)}catch(e){}};
 let tab='overview', S={}, isOpen=false, peekKind='song', peekNotif=null, peekUntil=0;
 const PLAY='<path d="M7 4v16l13-8z"/>', PAUSE='<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
-const TITLES={overview:'Control Centre',display:'Displays',volume:'Sound',bluetooth:'Bluetooth',notifications:'Notifications',clipboard:'Clipboard',system:'System',power:'Power',network:'Network',more:'More',shelf:'Shelf',notes:'Notes',ai:'AI usage',utilities:'Utilities',settings:'Settings'};
-const SUB=['shelf','notes','network','ai','utilities','settings'];
+const TITLES={overview:'Home',display:'Displays',volume:'Sound',bluetooth:'Bluetooth',notifications:'Notifications',clipboard:'Clipboard',system:'System & Power',more:'More',shelf:'Shelf',notes:'Notes',ai:'AI usage',utilities:'Utilities',settings:'Settings'};
+const SUB=['volume','shelf','utilities','settings'];
 const esc=t=>(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mmss=s=>{s=Math.max(0,Math.round(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
 const rate=b=>b>1048576?(b/1048576).toFixed(1)+' MB/s':b>1024?Math.round(b/1024)+' KB/s':Math.round(b)+' B/s';
@@ -385,7 +378,7 @@ const btIcon=k=>`<svg>${BT_ICONS[k]||BT_ICONS.device}</svg>`;
 const battery=p=>p<0?'':`<span class="bat">${p}%<span class="batt ${p<=20?'low':''}"><i style="width:${Math.max(6,p)}%"></i></span></span>`;
 
 // navigation
-const actions={clipboard:'<button class="link" id="cclear">Clear</button>',notifications:'<button class="link" id="nclear">Clear all</button>',bluetooth:'<button class="link" data-c="btSettings">Settings</button>',shelf:'<button class="link" id="sclear">Clear</button>',ai:'<button class="link" data-c="aiRefresh">Refresh</button>',system:'<button class="link" data-u2="taskmgr">Task Manager</button>',power:'<button class="link" data-u2="power">Settings</button>',volume:'<button class="link" data-u2="sound">Settings</button>',display:'<button class="link" data-c="displaysRefresh">Refresh</button>'};
+const actions={clipboard:'<button class="link" id="cclear">Clear</button>',notifications:'<button class="link" id="nclear">Clear all</button>',bluetooth:'<button class="link" data-c="btSettings">Settings</button>',shelf:'<button class="link" id="sclear">Clear</button>',ai:'<button class="link" data-c="aiRefresh">Refresh</button>',system:'<button class="link" data-u2="taskmgr">Task Manager</button>',volume:'<button class="link" data-u2="sound">Settings</button>',display:'<button class="link" data-c="displaysRefresh">Refresh</button>'};
 function setTab(t){tab=t;const top=SUB.includes(t)?'more':t;
   $$('.tb').forEach(b=>b.classList.toggle('on',b.dataset.t===top));$$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+t));
   $('#back').style.display=SUB.includes(t)?'flex':'none';$('#secTitle').textContent=TITLES[t];$('#secAct').innerHTML=actions[t]||'';$('main').scrollTop=0;
@@ -429,10 +422,7 @@ function renderMedia(m){if(!m)return;const has=!!m.title;
   $('#mplay').innerHTML=m.playing?PAUSE:PLAY;$('#mbar').style.width=(m.dur?Math.min(100,m.pos/m.dur*100):0)+'%';$('#npMod').classList.toggle('paused',!m.playing)}
 
 // timer
-$$('[data-s]').forEach(b=>b.onclick=()=>post({cmd:'timerStart',secs:+b.dataset.s}));
-$('#tgo').onclick=()=>{const t=S.timer||{};if(t.running)post({cmd:'timerPause'});else if(t.left>0)post({cmd:'timerStart'});else post({cmd:'timerStart',secs:300})};
-$('#treset').onclick=()=>post({cmd:'timerReset'});
-function renderTimer(t){if(!t)return;$('#tleft').textContent=mmss(t.left);$('#tgo').textContent=t.running?'Pause':t.left>0?'Resume':'Start'}
+
 
 // toggles
 $('#pAwake').onclick=()=>post({cmd:'toggle',name:'keepAwake'});
@@ -473,7 +463,6 @@ function notifHtml(n,full){return `<div class="notif"><span class="ico">${n.logo
 let lastNotifCount=-1;
 function renderNotifs(list,allowed){if(!list)return;
   const off=!allowed?'<div class="empty" style="padding:12px 2px">Windows is not sharing notifications with Notchy. <button class="link" data-c="notifSettings">Open settings</button></div>':'';
-  $('#oNotif').innerHTML=off||(list.length?list.slice(0,2).map(n=>notifHtml(n,false)).join(''):'<div class="empty">No notifications</div>');
   $('#nList').innerHTML=off||(list.length?list.map(n=>notifHtml(n,true)).join(''):'<div class="empty" style="padding:14px 2px">You\'re all caught up.</div>');
   if(lastNotifCount>=0&&list.length>lastNotifCount&&tab!=='notifications')$('#tbN').classList.add('has');lastNotifCount=list.length}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-nd]');if(b)post({cmd:'notifDel',id:b.dataset.nd})});
@@ -493,7 +482,7 @@ function spark(el,data,color,max){if(!el||!data||data.length<2)return;const m=ma
 function renderSys(s){if(!s)return;const ram=s.ramUsed/s.ramTotal*100,g=s.gpu>=0;
   $('#oCpu').textContent=Math.round(s.cpu)+'%';$('#oCpuS').textContent=s.cpuW>=0?W(s.cpuW):' ';
   $('#oGpuT').style.display=g?'':'none';if(g){$('#oGpu').textContent=Math.round(s.gpu)+'%';$('#oGpuS').textContent=Math.round(s.gpuTemp)+'°C'}
-  $('#oPow').textContent=s.totalW>0?Math.round(s.totalW)+' W':'-';$('#oNet').textContent=rate(s.down).replace(' ',' ');$('#oNetS').textContent='↑ '+rate(s.up);
+  $('#oPow').textContent=s.totalW>0?Math.round(s.totalW)+' W':'-';$('#oRam').textContent=Math.round(ram)+'%';$('#oRamS').textContent=s.ramUsed.toFixed(1)+' / '+Math.round(s.ramTotal)+' GB';
   $('#sCpu').textContent=Math.round(s.cpu)+'%'+(s.cpuW>=0?' · '+W(s.cpuW):'');spark($('#spCpu'),s.cpuHist,'#0a84ff',100);
   $('#sGpuCard').style.display=g?'':'none';
   if(g){$('#sGpuN').textContent=s.gpuName||'GPU';$('#sGpu').textContent=Math.round(s.gpu)+'%';$('#sGpuT').textContent=Math.round(s.gpuTemp)+'°C';$('#sVram').textContent=s.vramUsed.toFixed(1)+' / '+Math.round(s.vramTotal)+' GB';spark($('#spGpu'),s.gpuHist,'#30d158',100)}
@@ -502,8 +491,7 @@ function renderSys(s){if(!s)return;const ram=s.ramUsed/s.ramTotal*100,g=s.gpu>=0
   $('#sDisk').textContent=Math.round(s.diskFree)+' GB of '+Math.round(s.diskTotal)+' GB';$('#sUp').textContent=mins(s.uptime);
   $('#pTot').textContent=s.totalW>0?W(s.totalW):'-';spark($('#spPow'),s.powHist,'#ff9f0a');$('#pCpu').textContent=s.cpuW>=0?W(s.cpuW):'Not available';
   $('#pGpuRow').style.display=s.gpuW>=0?'':'none';$('#pGpu').textContent=W(s.gpuW)+(s.gpuLimit>0?' of '+Math.round(s.gpuLimit)+' W':'');
-  $('#pBatRow').style.display=s.battery>=0?'':'none';if(s.battery>=0)$('#pBat').textContent=Math.round(s.battery)+'%'+(s.charging?' · charging':'');
-  $('#nDown').textContent=rate(s.down);$('#nUp').textContent=rate(s.up);spark($('#spNet'),s.netHist,'#30d158');$('#nSessD').textContent=bytes(s.sessDown);$('#nSessU').textContent=bytes(s.sessUp);$('#nIp').textContent=s.ip||'-'}
+  $('#pBatRow').style.display=s.battery>=0?'':'none';if(s.battery>=0)$('#pBat').textContent=Math.round(s.battery)+'%'+(s.charging?' · charging':'');}
 
 // shelf
 function renderShelf(list){if(!list)return;const box=$('#tiles');const key=list.map(f=>f.path).join('|');if(box.dataset.k===key&&box.innerHTML)return;box.dataset.k=key;
@@ -547,10 +535,10 @@ chrome.webview.addEventListener('message',e=>{const d=e.data;
     case 'notif':peekKind='notif';peekNotif=d.n;peekUntil=Date.now()+5000;renderPeek();$('#tbN').classList.add('has');break;
     case 'timerDone':peekKind='timer';peekUntil=Date.now()+3500;renderPeek();break;
     case 'meters':renderMeters(d.items);break;
-    case 'live':S=d;renderMedia(d.media);renderTimer(d.timer);renderToggles(d.toggles);renderSys(d.sys);renderMixer(d);renderDisplays(d.displays);renderBt(d.bt);renderNotifs(d.notifs,d.notifAllowed);
+    case 'live':S=d;renderMedia(d.media);renderToggles(d.toggles);renderSys(d.sys);renderMixer(d);renderDisplays(d.displays);renderBt(d.bt);renderNotifs(d.notifs,d.notifAllowed);
       if(d.clips){clips=d.clips;renderClips()}renderShelf(d.shelf);renderAi(d.ai);if(document.body.classList.contains('peek'))renderPeek();break;
   }});
-setInterval(()=>{const t=S.timer;if(t&&t.running){t.left=Math.max(0,t.left-.25);renderTimer(t)}const m=S.media;if(m&&m.playing&&m.dur){m.pos=Math.min(m.dur,m.pos+.25);$('#mbar').style.width=(m.pos/m.dur*100)+'%'}},250);
+setInterval(()=>{const m=S.media;if(m&&m.playing&&m.dur){m.pos=Math.min(m.dur,m.pos+.25);$('#mbar').style.width=(m.pos/m.dur*100)+'%'}},250);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')post({cmd:'close'})});
 const fixSvg=root=>root.querySelectorAll('svg:not([viewBox])').forEach(s=>s.setAttribute('viewBox','0 0 24 24'));
 fixSvg(document);new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.tagName==='svg'&&!n.getAttribute('viewBox'))n.setAttribute('viewBox','0 0 24 24');fixSvg(n)}}))).observe(document.body,{childList:true,subtree:true});
