@@ -1,309 +1,326 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>Notchy</title>
 <style>
-:root{--bg:#000;--card:#141416;--card2:#1c1c1f;--line:#2a2a2e;--text:#f5f5f7;--sub:#8e8e93;--dim:#5a5a60;--acc:#0a84ff;--ok:#30d158;--warn:#ff9f0a;--bad:#ff453a;--r:16px}
+:root{--card:#151517;--card2:#1e1e21;--line:#26262a;--text:#f5f5f7;--sub:#8e8e93;--dim:#5c5c62;--acc:#0a84ff;--ok:#30d158;--warn:#ffd60a;--org:#ff9f0a;--bad:#ff453a}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#000;color:var(--text);font:13px/1.35 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;height:100%;overflow:hidden;user-select:none;-webkit-font-smoothing:antialiased}
-svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 input,textarea{font:inherit;color:var(--text);background:var(--card);border:1px solid transparent;border-radius:10px;outline:none}
-input:focus,textarea:focus{border-color:#3a3a40}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+input:focus,textarea:focus{border-color:#38383e}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#2e2e33;border-radius:3px}
 
-#app{position:absolute;inset:12px 0 0 0;padding:8px 16px 14px;display:flex;flex-direction:column;opacity:0;transform:translateY(-6px) scale(.985);transition:opacity .16s ease,transform .2s cubic-bezier(.2,.8,.2,1)}
-body.open #app{opacity:1;transform:none;transition-delay:.05s}
+#app{position:absolute;left:0;right:0;top:12px;bottom:0;padding:10px 16px 12px;display:flex;flex-direction:column;opacity:0;transform:translateY(-10px);transition:opacity .12s ease,transform .12s ease}
+body.open #app{opacity:1;transform:none;transition:opacity .22s ease .04s,transform .3s cubic-bezier(.16,1,.3,1) .02s}
+#peek{position:absolute;top:12px;left:30px;width:380px;height:72px;display:flex;align-items:center;gap:12px;padding:0 18px;opacity:0;pointer-events:none;transition:opacity .15s}
+body.peek #peek{opacity:1;transition:opacity .25s .08s}
 body.peek #app{display:none}
-#peek{position:absolute;inset:12px 0 0 0;display:none;align-items:center;gap:12px;padding:0 20px;opacity:0;transition:opacity .2s .08s}
-body.peek #peek{display:flex;opacity:1}
 
-/* header */
-header{display:flex;align-items:center;gap:4px;height:34px;margin-bottom:10px}
-.tab{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:15px;color:var(--sub);transition:background .15s,color .15s}
-.tab:hover{color:var(--text);background:#151517}
-.tab.on{color:var(--text);background:#202024}
-.tab span{display:none;font-weight:600;font-size:12.5px}
-.tab.on span{display:inline}
+.hdr{display:flex;align-items:center;gap:10px;height:44px}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3a78ff,#14286e);position:relative;flex:none;overflow:hidden}
+.logo::before{content:"";position:absolute;left:9px;right:9px;top:0;height:9px;background:#000;border-radius:0 0 7px 7px}
+.logo::after{content:"";position:absolute;left:8px;right:8px;bottom:9px;height:4px;border-radius:2px;background:#fff;box-shadow:0 -7px 0 #ffffffaa}
+.hname{font-size:15px;font-weight:700;line-height:1.1}
+.status{display:inline-flex;align-items:center;gap:6px;margin-top:3px;height:20px;padding:0 9px;border-radius:10px;background:#1c1c1f;color:var(--sub);font-size:11.5px;font-weight:600}
+.status i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.status.awake{background:#3a3210;color:var(--warn)}.status.awake i{background:var(--warn)}
 .grow{flex:1}
-.icon-btn{width:30px;height:30px;border-radius:15px;display:grid;place-items:center;color:var(--sub)}
-.icon-btn:hover{background:#1a1a1d;color:var(--text)}
-.icon-btn.on{color:var(--acc)}
+.ib{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--sub)}
+.ib:hover{background:#1c1c1f;color:var(--text)}
+.ib.on{color:var(--acc)}
 
-main{flex:1;min-height:0;position:relative}
-.view{position:absolute;inset:0;display:none;animation:in .18s ease}
+.bar{display:flex;justify-content:space-between;background:var(--card);border-radius:14px;padding:5px;margin:10px 0 12px}
+.sc{width:36px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--sub);transition:background .15s,color .15s}
+.sc:hover{color:var(--text);background:#202024}
+.sc.on{color:var(--acc);background:#0a84ff22}
+.sc svg{width:18px;height:18px}
+.sech{display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px;height:22px}
+.sech b{font-size:11.5px;letter-spacing:.08em;color:var(--sub);font-weight:700}
+.link{color:var(--acc);font-size:12px;font-weight:600}
+
+main{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;margin:0 -6px;padding:0 6px}
+.view{display:none;flex-direction:column;gap:10px;animation:in .2s ease}
 .view.on{display:flex}
-@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.card{background:var(--card);border-radius:var(--r);padding:14px;min-width:0}
-.title{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+@keyframes in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border-radius:14px;padding:12px 14px}
+.h{font-size:12px;font-weight:600;color:var(--sub);margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .sub{color:var(--sub)}.dim{color:var(--dim)}
-.big{font-size:30px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.big{font-size:26px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.num{font-variant-numeric:tabular-nums;font-weight:600}
 .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row{display:flex;align-items:center;gap:10px}
-.chip{height:28px;padding:0 11px;border-radius:14px;background:var(--card2);color:var(--text);font-size:12px;font-weight:600}
-.chip:hover{background:#26262a}
+.kv{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--sub);min-height:24px;gap:10px}
+.kv b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.sep{height:1px;background:var(--line);margin:8px 0}
+.chip{height:26px;padding:0 10px;border-radius:13px;background:var(--card2);font-size:12px;font-weight:600}
+.chip:hover{background:#29292d}
 .chip.acc{background:var(--acc)}
-.bar{height:6px;border-radius:3px;background:#26262a;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:3px;background:var(--text);transition:width .4s}
+.meterbar{height:6px;border-radius:3px;background:#26262a;overflow:hidden;flex:1}
+.meterbar i{display:block;height:100%;border-radius:3px;background:var(--acc);transition:width .5s}
+.spark{width:100%;height:44px;display:block;margin-top:6px}
+.spark polyline{fill:none;stroke-width:1.5;vector-effect:non-scaling-stroke}
+.spark polygon{stroke:none}
 
-/* home */
-#v-home{gap:12px}
-.media{flex:0 0 340px;display:flex;gap:14px;align-items:center}
-.art{width:92px;height:92px;border-radius:14px;background:#222 center/cover;flex:none;display:grid;place-items:center;color:var(--dim)}
-.art svg{width:30px;height:30px}
-.mtext{flex:1;min-width:0}
-.mtitle{font-size:15px;font-weight:600}
-.prog{margin:10px 0 2px;cursor:pointer;height:5px}
-.times{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
-.ctrl{display:flex;align-items:center;gap:6px;margin-top:6px}
-.ctrl button{width:34px;height:34px;border-radius:17px;display:grid;place-items:center}
-.ctrl button:hover{background:#222}
-.ctrl .main{background:var(--text);color:#000}
-.ctrl .main:hover{background:#ddd}
-.ctrl svg{width:18px;height:18px}
-.ctrl .main svg{fill:#000;stroke:none}
-.eq{display:flex;gap:2px;align-items:flex-end;height:14px;margin-left:auto}
-.eq i{width:3px;background:var(--ok);border-radius:1px;height:30%;animation:eq 1s ease-in-out infinite}
-.eq i:nth-child(2){animation-delay:-.3s}.eq i:nth-child(3){animation-delay:-.6s}.eq i:nth-child(4){animation-delay:-.15s}
-.paused .eq i{animation:none;height:20%;background:var(--dim)}
-@keyframes eq{0%,100%{height:25%}50%{height:100%}}
-
-.timer{flex:0 0 200px;display:flex;flex-direction:column}
-.timer .big{margin:2px 0 8px}
-.presets{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
-.presets .chip{height:24px;padding:0 9px;font-size:11.5px}
-.sw{margin-top:auto;display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums;color:var(--sub);font-size:12px}
-.side{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
-.mini{display:grid;grid-template-columns:auto 1fr auto;gap:7px 10px;align-items:center;font-size:12px}
-.mini .bar{height:5px}
+.np{display:flex;gap:12px;align-items:center}
+.art{width:52px;height:52px;border-radius:11px;background:#222 center/cover;flex:none;display:grid;place-items:center;color:var(--dim)}
+.np .t{flex:1;min-width:0}
+.np .t b{display:block;font-size:13.5px}
+.ctl{display:flex;gap:2px}
+.ctl button{width:32px;height:32px;border-radius:16px;display:grid;place-items:center}
+.ctl button:hover{background:#26262a}
+.ctl .main{background:var(--text);color:#000}.ctl .main:hover{background:#ddd}
+.ctl .main svg{fill:#000;stroke:none}
+.prog{height:4px;margin-top:9px;cursor:pointer}
+.prog i{background:var(--text)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--card);border-radius:12px;padding:10px 11px;text-align:left;display:flex;flex-direction:column;gap:2px;transition:background .15s;min-width:0}
+.tile:hover{background:var(--card2)}
+.tile span{font-size:11.5px;color:var(--sub);display:flex;align-items:center;gap:5px}
+.tile span svg{width:13px;height:13px}
+.tile b{font-size:17px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tile small{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timer{display:flex;align-items:center;gap:8px}
+.timer .big{font-size:22px;min-width:70px}
 .toggles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.tg{height:44px;border-radius:12px;background:var(--card);display:grid;place-items:center;color:var(--sub);position:relative}
+.tg{height:48px;border-radius:12px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--sub);font-size:11px}
 .tg:hover{background:var(--card2);color:var(--text)}
 .tg.on{background:var(--text);color:#000}
-.tg svg{width:18px;height:18px}
-.tip{position:fixed;padding:4px 8px;border-radius:6px;background:#2a2a2e;font-size:11.5px;pointer-events:none;opacity:0;transition:opacity .12s;z-index:9;white-space:nowrap}
 
-/* mixer */
-#v-mixer{gap:12px}
-.master{flex:0 0 220px;display:flex;flex-direction:column}
-.master .big{margin:4px 0 10px}
-.apps{flex:1;overflow-y:auto;padding:4px 4px 4px 14px}
-.app{display:grid;grid-template-columns:24px 120px 1fr 34px 30px;align-items:center;gap:10px;height:42px}
-.app img{width:22px;height:22px}
-.app .ph{width:22px;height:22px;border-radius:6px;background:#2a2a2e}
-.meter{height:3px;border-radius:2px;background:#222;margin-top:4px;overflow:hidden}
-.meter i{display:block;height:100%;background:var(--ok);width:0;transition:width .09s linear}
-.pct{font-size:11.5px;color:var(--sub);text-align:right;font-variant-numeric:tabular-nums}
-input[type=range]{-webkit-appearance:none;width:100%;height:22px;background:transparent;border:0;cursor:pointer}
+input[type=range]{-webkit-appearance:none;width:100%;height:20px;background:transparent;border:0;cursor:pointer}
 input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,var(--text) var(--p,50%),#2c2c30 var(--p,50%))}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;margin-top:-5px;box-shadow:0 1px 4px #0008}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;margin-top:-4.5px;box-shadow:0 1px 4px #0009}
 .muted input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(to right,#555 var(--p,50%),#2c2c30 var(--p,50%))}
-.mute{width:30px;height:30px;border-radius:15px;display:grid;place-items:center;color:var(--sub)}
-.mute:hover{background:#222;color:var(--text)}
-.muted .mute{color:var(--bad)}
+.app{display:grid;grid-template-columns:24px 1fr 40px 28px;align-items:center;gap:10px;padding:6px 0}
+.app img,.app .ph{width:22px;height:22px;border-radius:5px}
+.app .ph{background:#2a2a2e}
+.app .nm{font-size:12.5px;margin-bottom:1px}
+.lvl{height:3px;border-radius:2px;background:#222;overflow:hidden;margin-top:2px}
+.lvl i{display:block;height:100%;width:0;background:var(--ok);transition:width .09s linear}
+.pct{font-size:11.5px;color:var(--sub);text-align:right;font-variant-numeric:tabular-nums}
+.mute{width:28px;height:28px;border-radius:14px;display:grid;place-items:center;color:var(--sub)}
+.mute:hover{background:#26262a;color:var(--text)}
+.muted .mute,.muted #oMute,.muted #vMute{color:var(--bad)}
 
-/* system */
-#v-system{display:none;gap:12px}
-#v-system.on{display:grid;grid-template-columns:1fr 1fr 1fr 1fr}
-.spark{width:100%;height:46px;margin-top:6px}
-.spark polyline{fill:none;stroke-width:1.6}
-.spark polygon{stroke:none}
-.kv{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-top:4px}
-.kv b{color:var(--text);font-weight:600}
-.top{margin-top:6px;font-size:11.5px}
-.top div{display:flex;justify-content:space-between;color:var(--sub);line-height:1.6}
-
-/* clipboard */
-#v-clipboard{flex-direction:column;gap:8px}
 .search{height:32px;padding:0 12px;width:100%}
-.list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-right:4px}
 .clip{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--card);cursor:pointer;min-height:40px}
 .clip:hover{background:var(--card2)}
 .clip .t{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word;font-size:12.5px}
-.clip img{max-height:42px;max-width:90px;border-radius:6px}
-.clip .acts{display:flex;gap:2px;opacity:0}
-.clip:hover .acts{opacity:1}
-.clip .pinned{color:var(--warn)}
-.clip .ago{font-size:11px;color:var(--dim);width:28px;text-align:right}
+.clip img{max-height:40px;max-width:80px;border-radius:6px}
+.clip .acts{display:none}
+.clip:hover .acts{display:flex}
+.clip:hover .ago{display:none}
+.pinned{color:var(--warn)}
+.ago{font-size:11px;color:var(--dim)}
 
-/* shelf */
-#v-shelf{flex-direction:column}
-.tiles{flex:1;display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;overflow-y:auto}
-.tile{width:112px;height:112px;border-radius:14px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px;position:relative;cursor:grab}
-.tile:hover{background:var(--card2)}
-.tile img{width:40px;height:40px}
-.tile .n{font-size:11.5px;max-width:100%;text-align:center}
-.tile .s{font-size:10.5px;color:var(--dim)}
-.tile .x{position:absolute;top:4px;right:4px;opacity:0}
-.tile:hover .x{opacity:1}
-.empty{flex:1;width:100%;height:100%;border:1.5px dashed #333;border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--sub)}
+.shelf{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ft{height:104px;border-radius:12px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;position:relative;cursor:grab;min-width:0}
+.ft:hover{background:var(--card2)}
+.ft img{width:36px;height:36px}
+.ft .n{font-size:11.5px;max-width:100%;text-align:center}
+.ft .s{font-size:10.5px;color:var(--dim)}
+.ft .x{position:absolute;top:3px;right:3px;opacity:0;width:24px;height:24px}
+.ft:hover .x{opacity:1}
+.empty{border:1.5px dashed #333;border-radius:14px;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--sub);text-align:center;padding:0 30px}
 .empty svg{width:28px;height:28px;color:var(--dim)}
-#drop{position:absolute;inset:12px 8px 8px;border:2px dashed var(--acc);border-radius:20px;background:#0a84ff22;display:none;align-items:center;justify-content:center;font-size:15px;font-weight:600;z-index:5}
+#drop{position:absolute;inset:20px 10px 10px;border:2px dashed var(--acc);border-radius:20px;background:#0a84ff26;display:none;align-items:center;justify-content:center;font-size:15px;font-weight:600;z-index:5}
 body.dragging #drop{display:flex}
 
-/* notes */
-#v-notes{flex-direction:column}
-#notes{flex:1;resize:none;padding:12px 14px;line-height:1.55;font-size:13.5px}
-.saved{position:absolute;right:12px;bottom:8px;font-size:11px;color:var(--dim)}
-
-/* ai */
-#v-ai{gap:12px}
-#v-ai .card{flex:1;display:flex;flex-direction:column}
-.ring{width:96px;height:96px;flex:none}
+#notes{width:100%;height:430px;resize:none;padding:12px 14px;line-height:1.55;font-size:13.5px}
+.ring{width:84px;height:84px;flex:none}
 .ring circle{fill:none;stroke-width:9}
-.stat{display:flex;flex-direction:column}
-.stat b{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
-.stat span{font-size:11.5px;color:var(--sub)}
 
-/* settings */
-#v-settings{flex-direction:column;gap:8px;max-width:520px}
-.set{display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;background:var(--card);border-radius:12px}
-.sw-t{width:42px;height:26px;border-radius:13px;background:#39393d;position:relative;transition:background .2s;cursor:pointer}
+.util{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;background:var(--card);text-align:left;width:100%}
+.util:hover{background:var(--card2)}
+.util>svg:first-child{width:20px;height:20px;color:var(--acc)}
+.util div{flex:1;min-width:0}
+.util b{display:block;font-size:13px;font-weight:600}
+.util span{font-size:11.5px;color:var(--sub)}
+.util .chev{width:14px;height:14px;color:var(--dim)}
+.set{display:flex;align-items:center;justify-content:space-between;min-height:46px;padding:0 14px;background:var(--card);border-radius:12px}
+.sw-t{width:42px;height:26px;border-radius:13px;background:#39393d;position:relative;transition:background .2s;cursor:pointer;flex:none}
 .sw-t::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
 .sw-t.on{background:var(--ok)}.sw-t.on::after{transform:translateX(16px)}
 kbd{font:600 11.5px "Segoe UI";background:#2a2a2e;border-radius:5px;padding:2px 7px}
 
-/* peek */
+.foot{display:flex;gap:8px;margin-top:10px}
+.foot button{flex:1;height:36px;border-radius:11px;background:var(--card);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;color:#d8d8dc}
+.foot button:hover{background:var(--card2)}
+.foot button.on{color:var(--acc)}
+.toast{position:absolute;left:50%;bottom:62px;transform:translate(-50%,10px);background:#2c2c30;padding:8px 14px;border-radius:10px;font-size:12.5px;font-weight:600;opacity:0;transition:all .2s;pointer-events:none;white-space:nowrap;z-index:9}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.tip{position:fixed;padding:4px 8px;border-radius:6px;background:#2c2c30;font-size:11.5px;pointer-events:none;opacity:0;transition:opacity .12s;z-index:9;white-space:nowrap}
+.eq{display:flex;gap:2px;align-items:flex-end;height:16px}
+.eq i{width:3px;background:var(--ok);border-radius:1px;height:30%;animation:eq 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:-.3s}.eq i:nth-child(3){animation-delay:-.6s}.eq i:nth-child(4){animation-delay:-.15s}
+.paused .eq i{animation:none;height:20%;background:var(--dim)}
+@keyframes eq{0%,100%{height:25%}50%{height:100%}}
 #peek .art{width:44px;height:44px;border-radius:10px}
-#peek .pt{flex:1;min-width:0}
-#peek .pt b{display:block;font-size:13.5px}
 </style></head>
 <body>
 <div id="app">
-  <header>
-    <button class="tab on" data-t="home" title="Home"><svg><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></button>
-    <button class="tab" data-t="mixer" title="Volume"><svg><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span>Volume</span></button>
-    <button class="tab" data-t="system" title="System"><svg><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>System</span></button>
-    <button class="tab" data-t="clipboard" title="Clipboard"><svg><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg><span>Clipboard</span></button>
-    <button class="tab" data-t="shelf" title="Shelf"><svg><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg><span>Shelf</span></button>
-    <button class="tab" data-t="notes" title="Notes"><svg><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Notes</span></button>
-    <button class="tab" data-t="ai" title="AI usage"><svg><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg><span>AI usage</span></button>
+  <div class="hdr">
+    <div class="logo"></div>
+    <div><div class="hname">Notchy</div><div class="status" id="status"><i></i><span id="statusT">Up</span></div></div>
     <div class="grow"></div>
-    <button class="icon-btn" id="pin" data-tip="Keep open"><svg><path d="M12 17v5M9 10.8V4h6v6.8l3 3.2v2H6v-2z"/></svg></button>
-    <button class="tab" data-t="settings" title="Settings" style="padding:0 7px"><svg><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-  </header>
+    <button class="ib" id="pin" data-tip="Keep open"><svg><path d="M12 17v5M9 10.8V4h6v6.8l3 3.2v2H6v-2z"/></svg></button>
+  </div>
+
+  <nav class="bar">
+    <button class="sc on" data-t="overview" data-tip="Overview"><svg><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+    <button class="sc" data-t="volume" data-tip="Volume"><svg><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></button>
+    <button class="sc" data-t="system" data-tip="System"><svg><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg></button>
+    <button class="sc" data-t="power" data-tip="Power"><svg><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></button>
+    <button class="sc" data-t="network" data-tip="Network"><svg><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg></button>
+    <button class="sc" data-t="clipboard" data-tip="Clipboard"><svg><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button>
+    <button class="sc" data-t="shelf" data-tip="Shelf"><svg><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg></button>
+    <button class="sc" data-t="notes" data-tip="Notes"><svg><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+    <button class="sc" data-t="ai" data-tip="AI usage"><svg><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></button>
+    <button class="sc" data-t="utilities" data-tip="Utilities"><svg><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg></button>
+  </nav>
+
+  <div class="sech"><b id="secTitle">OVERVIEW</b><span id="secAct"></span></div>
+
   <main>
-    <!-- HOME -->
-    <section class="view on" id="v-home">
-      <div class="card media" id="media">
-        <div class="art" id="art"><svg><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-        <div class="mtext">
-          <div class="row"><div class="mtitle ell" id="mt">Nothing playing</div><div class="eq"><i></i><i></i><i></i><i></i></div></div>
-          <div class="sub ell" id="ma">Play something in Spotify, YouTube or any app</div>
-          <div class="bar prog" id="mprog"><i id="mbar" style="width:0"></i></div>
-          <div class="times"><span id="mpos">0:00</span><span id="mdur">0:00</span></div>
-          <div class="ctrl">
+    <section class="view on" id="v-overview">
+      <div class="card" id="npCard">
+        <div class="np">
+          <div class="art" id="art"><svg style="width:24px;height:24px"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+          <div class="t"><b class="ell" id="mt">Nothing playing</b><span class="sub ell" id="ma" style="display:block;font-size:12px">Play music or a video in any app</span></div>
+          <div class="ctl">
             <button data-m="prev"><svg><path d="M19 20 9 12l10-8zM5 19V5"/></svg></button>
-            <button data-m="toggle" class="main" id="mplay"><svg id="mplayi"><path d="M7 4v16l13-8z"/></svg></button>
+            <button data-m="toggle" class="main"><svg id="mplay"><path d="M7 4v16l13-8z"/></svg></button>
             <button data-m="next"><svg><path d="m5 4 10 8-10 8zM19 5v14"/></svg></button>
           </div>
         </div>
+        <div class="meterbar prog" id="mprog"><i id="mbar" style="width:0"></i></div>
+      </div>
+      <div class="tiles">
+        <button class="tile" data-go="system"><span><svg><rect x="5" y="5" width="14" height="14" rx="2"/></svg>CPU</span><b id="oCpu">0%</b><small id="oCpuS">&nbsp;</small></button>
+        <button class="tile" data-go="system" id="oGpuT"><span><svg><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="9" cy="12" r="2.5"/></svg>GPU</span><b id="oGpu">-</b><small id="oGpuS">&nbsp;</small></button>
+        <button class="tile" data-go="system"><span><svg><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M6 7v10M10 7v10M14 7v10M18 7v10"/></svg>Memory</span><b id="oRam">0%</b><small id="oRamS">&nbsp;</small></button>
+        <button class="tile" data-go="power"><span><svg><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>Power</span><b id="oPow">-</b><small>CPU + GPU</small></button>
+        <button class="tile" data-go="network"><span><svg><path d="M12 5v14M19 12l-7 7-7-7"/></svg>Network</span><b id="oNet">0</b><small id="oNetS">&nbsp;</small></button>
+        <button class="tile" data-go="ai"><span><svg><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>AI limit</span><b id="oAi">-</b><small id="oAiS">Codex 5h</small></button>
+      </div>
+      <div class="card row" style="padding:8px 10px" id="oVolRow">
+        <button class="ib" id="oMute" data-tip="Mute"><svg><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></svg></button>
+        <input type="range" min="0" max="100" id="oVol">
+        <span class="pct" id="oVolV" style="width:40px">0%</span>
+        <button class="ib" data-go="volume" data-tip="Volume mixer"><svg><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
       <div class="card timer">
-        <div class="title"><svg><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>Timer</div>
-        <div class="big" id="tleft">0:00</div>
-        <div class="presets"><button class="chip" data-s="60">1m</button><button class="chip" data-s="300">5m</button><button class="chip" data-s="900">15m</button><button class="chip" data-s="1500">25m</button></div>
-        <div class="row"><button class="chip acc" id="tgo">Start</button><button class="chip" id="treset">Reset</button></div>
-        <div class="sw"><svg style="width:14px;height:14px"><circle cx="12" cy="14" r="8"/><path d="M12 10v4M10 2h4"/></svg><span id="swv">0:00.0</span><div class="grow"></div><button class="chip" id="swgo" style="height:22px">Start</button><button class="chip" id="swreset" style="height:22px">Reset</button></div>
-      </div>
-      <div class="side">
-        <div class="card mini" id="mini">
-          <span class="sub">CPU</span><div class="bar"><i id="hc"></i></div><b id="hcv">0%</b>
-          <span class="sub">RAM</span><div class="bar"><i id="hr"></i></div><b id="hrv">0%</b>
-          <span class="sub" id="hgl">GPU</span><div class="bar" id="hgb"><i id="hg"></i></div><b id="hgv">-</b>
-          <span class="sub">AI</span><div class="bar"><i id="ha" style="background:var(--acc)"></i></div><b id="hav">-</b>
-        </div>
-        <div class="toggles">
-          <button class="tg" data-g="keepAwake" data-tip="Keep awake"><svg><path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM6 2v2M10 2v2M14 2v2"/></svg></button>
-          <button class="tg" data-g="mic" data-tip="Mute microphone"><svg><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg></button>
-          <button class="tg" data-g="dark" data-tip="Dark mode"><svg><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
-          <button class="tg" data-g="screenshot" data-tip="Screenshot"><svg><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
-          <button class="tg" data-g="desktop" data-tip="Show desktop"><svg><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
-          <button class="tg" data-g="screenOff" data-tip="Screen off"><svg><path d="M18.4 6.6a9 9 0 1 1-12.8 0M12 2v10"/></svg></button>
-          <button class="tg" data-g="lock" data-tip="Lock PC"><svg><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-          <button class="tg" data-g="recycle" data-tip="Empty Recycle Bin"><svg><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
-        </div>
-      </div>
-    </section>
-
-    <!-- MIXER -->
-    <section class="view" id="v-mixer">
-      <div class="card master" id="masterCard">
-        <div class="title"><svg><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>Master</div>
-        <div class="big" id="mvv">0%</div>
-        <input type="range" min="0" max="100" id="mv">
-        <div class="meter" style="margin-top:8px"><i id="mmeter"></i></div>
+        <svg style="color:var(--sub)"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+        <span class="big" id="tleft">0:00</span>
+        <button class="chip" data-s="300">5m</button><button class="chip" data-s="900">15m</button><button class="chip" data-s="1500">25m</button>
         <div class="grow"></div>
-        <div class="row"><button class="chip" id="mmute">Mute</button><span class="sub ell" id="mout" style="font-size:11.5px"></span></div>
+        <button class="chip acc" id="tgo">Start</button><button class="ib" id="treset" data-tip="Reset"><svg><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8M3 3v5h5"/></svg></button>
       </div>
-      <div class="card apps" id="apps"></div>
+      <div class="toggles">
+        <button class="tg" data-g="keepAwake"><svg><path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM6 2v2M10 2v2M14 2v2"/></svg>Awake</button>
+        <button class="tg" data-g="mic"><svg><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>Mic off</button>
+        <button class="tg" data-g="dark"><svg><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Dark</button>
+        <button class="tg" data-g="screenshot"><svg><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Snip</button>
+      </div>
     </section>
 
-    <!-- SYSTEM -->
+    <section class="view" id="v-volume">
+      <div class="card">
+        <div class="kv" style="margin-bottom:2px"><span id="vOut" class="ell">Speakers</span><b id="vMasterV">0%</b></div>
+        <div class="row" id="vRow"><button class="ib" id="vMute"><svg><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></button><input type="range" min="0" max="100" id="vMaster"></div>
+        <div class="lvl" style="height:4px;margin-top:4px"><i id="vMeter"></i></div>
+      </div>
+      <div class="card" id="apps" style="padding:6px 14px"></div>
+    </section>
+
     <section class="view" id="v-system">
-      <div class="card"><div class="title">CPU</div><div class="big" id="sc">0%</div><svg class="spark" id="spc" viewBox="0 0 60 46" preserveAspectRatio="none"></svg></div>
-      <div class="card" id="sgCard"><div class="title" id="sgn">GPU</div><div class="big" id="sg">-</div><svg class="spark" id="spg" viewBox="0 0 60 46" preserveAspectRatio="none"></svg><div class="kv"><span>Temp</span><b id="sgt">-</b></div><div class="kv"><span>VRAM</span><b id="sgv">-</b></div></div>
-      <div class="card"><div class="title">Memory</div><div class="big" id="sr">0 GB</div><div class="bar" style="margin:6px 0 4px"><i id="srb"></i></div><div class="top" id="stop"></div></div>
-      <div class="card"><div class="title">Network</div><div class="kv" style="margin:0"><span>↓ Down</span><b id="snd">0</b></div><div class="kv"><span>↑ Up</span><b id="snu">0</b></div><svg class="spark" id="spn" viewBox="0 0 60 46" preserveAspectRatio="none"></svg><div class="kv"><span>Disk free</span><b id="sdf">-</b></div><div class="kv" id="sbatRow"><span>Battery</span><b id="sbat">-</b></div></div>
+      <div class="card"><div class="kv"><span>Processor</span><b id="sCpu">0%</b></div><svg class="spark" id="spCpu" viewBox="0 0 60 44" preserveAspectRatio="none"></svg></div>
+      <div class="card" id="sGpuCard"><div class="kv"><span id="sGpuN">GPU</span><b id="sGpu">-</b></div><svg class="spark" id="spGpu" viewBox="0 0 60 44" preserveAspectRatio="none"></svg>
+        <div class="kv"><span>Temperature</span><b id="sGpuT">-</b></div><div class="kv"><span>Video memory</span><b id="sVram">-</b></div></div>
+      <div class="card"><div class="kv"><span>Memory</span><b id="sRam">-</b></div><svg class="spark" id="spRam" viewBox="0 0 60 44" preserveAspectRatio="none"></svg>
+        <div class="sep"></div><div class="h" style="margin:0 0 2px">Using the most memory</div><div id="sTop"></div></div>
+      <div class="card"><div class="kv"><span>Disk free</span><b id="sDisk">-</b></div><div class="kv"><span>Up for</span><b id="sUp">-</b></div></div>
     </section>
 
-    <!-- CLIPBOARD -->
+    <section class="view" id="v-power">
+      <div class="card"><div class="kv"><span style="display:flex;gap:7px;align-items:center"><svg style="width:15px;height:15px;color:var(--org)"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>CPU + GPU now</span><b class="big" id="pTot" style="font-size:22px">-</b></div><svg class="spark" id="spPow" viewBox="0 0 60 44" preserveAspectRatio="none" style="height:64px"></svg></div>
+      <div class="card">
+        <div class="kv"><span>Processor</span><b id="pCpu">-</b></div>
+        <div class="kv" id="pGpuRow"><span>Graphics card</span><b id="pGpu">-</b></div>
+        <div class="kv" id="pBatRow"><span>Battery</span><b id="pBat">-</b></div>
+        <div class="sep"></div>
+        <div class="kv"><span>Keep the PC awake</span><div class="sw-t" id="pAwake"></div></div>
+      </div>
+      <div class="dim" style="font-size:11.5px;padding:0 4px">Live readings from Windows and the graphics driver. Screen, drives and fans add a bit more.</div>
+    </section>
+
+    <section class="view" id="v-network">
+      <div class="card"><div class="row"><div style="flex:1"><div class="sub" style="font-size:12px">↓ Download</div><div class="big" id="nDown" style="font-size:22px">0</div></div><div style="flex:1"><div class="sub" style="font-size:12px">↑ Upload</div><div class="big" id="nUp" style="font-size:22px">0</div></div></div>
+        <svg class="spark" id="spNet" viewBox="0 0 60 44" preserveAspectRatio="none" style="height:56px"></svg></div>
+      <div class="card"><div class="kv"><span>Downloaded since start</span><b id="nSessD">-</b></div><div class="kv"><span>Uploaded since start</span><b id="nSessU">-</b></div><div class="kv"><span>Local IP</span><b id="nIp">-</b></div></div>
+    </section>
+
     <section class="view" id="v-clipboard">
-      <div class="row"><input class="search" id="cs" placeholder="Search clipboard"><button class="chip" id="cclear">Clear</button></div>
-      <div class="list" id="clist"></div>
+      <input class="search" id="cs" placeholder="Search clipboard">
+      <div id="clist" style="display:flex;flex-direction:column;gap:5px"></div>
     </section>
 
-    <!-- SHELF -->
-    <section class="view" id="v-shelf">
-      <div class="row" style="margin-bottom:8px"><span class="sub">Drag files here, drag them out when you need them.</span><div class="grow"></div><button class="chip" id="sclear">Clear</button></div>
-      <div class="tiles" id="tiles"></div>
-    </section>
+    <section class="view" id="v-shelf"><div id="tiles"></div></section>
 
-    <!-- NOTES -->
-    <section class="view" id="v-notes">
-      <textarea id="notes" placeholder="Jot something down. It saves by itself."></textarea>
-      <span class="saved" id="nsaved"></span>
-    </section>
+    <section class="view" id="v-notes"><textarea id="notes" placeholder="Jot something down. It saves by itself."></textarea></section>
 
-    <!-- AI -->
     <section class="view" id="v-ai">
-      <div class="card" id="aiCodex">
-        <div class="title">Codex<div class="grow"></div><button class="icon-btn" id="airef" style="width:24px;height:24px" data-tip="Refresh"><svg style="width:13px;height:13px"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5"/></svg></button></div>
-        <div class="row" style="gap:18px;flex:1">
-          <svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" stroke="#26262a"/><circle id="cxr" cx="50" cy="50" r="42" stroke="var(--acc)" stroke-dasharray="264" stroke-dashoffset="264" transform="rotate(-90 50 50)" stroke-linecap="round" style="transition:stroke-dashoffset .6s"/><text x="50" y="56" text-anchor="middle" fill="#f5f5f7" font-size="20" font-weight="600" id="cxp">-</text></svg>
-          <div style="flex:1;display:flex;flex-direction:column;gap:10px">
-            <div class="stat"><b id="cx5">-</b><span id="cx5s">5-hour limit</span></div>
-            <div><div class="kv" style="margin:0 0 5px"><span>This week</span><b id="cxw">-</b></div><div class="bar"><i id="cxwb" style="background:var(--acc)"></i></div></div>
-            <div class="kv"><span>Tokens today</span><b id="cxt">-</b></div>
+      <div class="card">
+        <div class="h">Codex</div>
+        <div class="row" style="gap:16px">
+          <svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" stroke="#26262a"/><circle id="cxr" cx="50" cy="50" r="42" stroke="var(--acc)" stroke-dasharray="264" stroke-dashoffset="264" transform="rotate(-90 50 50)" stroke-linecap="round" style="transition:stroke-dashoffset .6s"/><text x="50" y="57" text-anchor="middle" fill="#f5f5f7" stroke="none" font-size="21" font-weight="600" id="cxp">-</text></svg>
+          <div style="flex:1;min-width:0">
+            <div class="num" style="font-size:17px" id="cx5">-</div><div class="sub" style="font-size:12px" id="cx5s">5-hour limit</div>
+            <div class="kv" style="margin-top:6px"><span>This week</span><b id="cxw">-</b></div><div class="meterbar"><i id="cxwb"></i></div>
           </div>
         </div>
+        <div class="sep"></div><div class="kv"><span>Tokens today</span><b id="cxt">-</b></div>
       </div>
-      <div class="card" id="aiClaude">
-        <div class="title">Claude Code</div>
-        <div class="row" style="gap:20px;margin-top:4px">
-          <div class="stat"><b id="clm">-</b><span>replies today</span></div>
-          <div class="stat"><b id="clo">-</b><span>tokens written today</span></div>
-        </div>
-        <div class="kv" style="margin-top:14px"><span>This 5-hour window</span><b id="cl5">-</b></div>
+      <div class="card">
+        <div class="h">Claude Code</div>
+        <div class="row" style="gap:24px"><div><div class="big" id="clm" style="font-size:22px">-</div><div class="sub" style="font-size:11.5px">replies today</div></div><div><div class="big" id="clo" style="font-size:22px">-</div><div class="sub" style="font-size:11.5px">tokens written</div></div></div>
+        <div class="sep"></div>
+        <div class="kv"><span>This 5-hour window</span><b id="cl5">-</b></div>
         <div class="kv"><span>Window resets in</span><b id="clr">-</b></div>
-        <div class="kv"><span>Context read today</span><b id="clc">-</b></div>
-        <div class="grow"></div>
-        <div class="dim" style="font-size:11px">From the logs on this PC. Nothing is sent anywhere.</div>
       </div>
+      <div class="dim" style="font-size:11.5px;padding:0 4px">Read from the logs on this PC. Nothing is sent anywhere.</div>
     </section>
 
-    <!-- SETTINGS -->
+    <section class="view" id="v-utilities">
+      <button class="util" data-g="screenshot"><svg><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><div><b>Screenshot</b><span>Snip an area, a window or the whole screen</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="util" data-u="cleanUrl"><svg><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><div><b>Clean link</b><span>Strip tracking from the link you copied</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="util" data-u="cleanTemp"><svg><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg><div><b>Clear temp files</b><span>Delete temp files older than 2 days</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="util" data-g="recycle"><svg><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg><div><b>Empty Recycle Bin</b><span>Windows asks before deleting</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="util" data-u="taskmgr"><svg><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><div><b>Task Manager</b><span>See and stop running apps</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="util" data-u="apps"><svg><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg><div><b>Uninstall apps</b><span>Open Installed apps in Settings</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="util" data-g="desktop"><svg><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg><div><b>Show desktop</b><span>Minimise everything</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="util" data-g="screenOff"><svg><path d="M18.4 6.6a9 9 0 1 1-12.8 0M12 2v10"/></svg><div><b>Screen off</b><span>Turn the display off, apps keep running</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="util" data-g="lock"><svg><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><div><b>Lock PC</b><span>Same as Windows + L</span></div><svg class="chev"><path d="m9 18 6-6-6-6"/></svg></button>
+    </section>
+
     <section class="view" id="v-settings">
       <div class="set"><span>Start with Windows</span><div class="sw-t" data-p="startWithWindows"></div></div>
       <div class="set"><span>Show the song when it changes</span><div class="sw-t" data-p="peekOnSong"></div></div>
-      <div class="set"><span>Open or close from the keyboard</span><span><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>N</kbd></span></div>
+      <div class="set"><span>Open from the keyboard</span><span><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>N</kbd></span></div>
       <div class="set"><span>Version</span><span class="sub" id="ver"></span></div>
     </section>
   </main>
+
+  <div class="foot">
+    <button id="fSet"><svg><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+    <button id="fQuit"><svg><path d="M18.4 6.6a9 9 0 1 1-12.8 0M12 2v10"/></svg>Quit</button>
+  </div>
   <div id="drop">Drop to put it on the shelf</div>
+  <div class="toast" id="toast"></div>
 </div>
 
 <div id="peek">
   <div class="art" id="part"></div>
-  <div class="pt"><b class="ell" id="pt1"></b><span class="sub ell" id="pt2" style="display:block"></span></div>
+  <div style="flex:1;min-width:0"><b class="ell" id="pt1" style="display:block;font-size:13.5px"></b><span class="sub ell" id="pt2" style="display:block;font-size:12px"></span></div>
   <div class="eq" id="peq"><i></i><i></i><i></i><i></i></div>
 </div>
 <div class="tip" id="tip"></div>
@@ -311,168 +328,150 @@ kbd{font:600 11.5px "Segoe UI";background:#2a2a2e;border-radius:5px;padding:2px 
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const post=o=>{try{chrome.webview.postMessage(o)}catch(e){}};
-let tab='home', S={}, timerDoneFlash=0;
+let tab='overview', S={}, timerDoneFlash=0, isOpen=false;
 const PLAY='<path d="M7 4v16l13-8z"/>', PAUSE='<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+const TITLES={overview:'OVERVIEW',volume:'VOLUME',system:'SYSTEM',power:'POWER',network:'NETWORK',clipboard:'CLIPBOARD',shelf:'SHELF',notes:'NOTES',ai:'AI USAGE',utilities:'UTILITIES',settings:'SETTINGS'};
 const esc=t=>(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mmss=s=>{s=Math.max(0,Math.round(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
-const gb=v=>v>=100?Math.round(v)+' GB':v.toFixed(1)+' GB';
 const rate=b=>b>1048576?(b/1048576).toFixed(1)+' MB/s':b>1024?Math.round(b/1024)+' KB/s':Math.round(b)+' B/s';
+const bytes=b=>b>1073741824?(b/1073741824).toFixed(2)+' GB':b>1048576?(b/1048576).toFixed(1)+' MB':Math.round(b/1024)+' KB';
 const k=n=>n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n||0);
 const mins=m=>{m=Math.round(m||0);return m>=1440?Math.floor(m/1440)+'d '+Math.floor(m%1440/60)+'h':m>=60?Math.floor(m/60)+'h '+(m%60)+'m':m+'m'};
+const W=v=>v>=0?(v>=100?Math.round(v):v.toFixed(1))+' W':'-';
 
-// tabs
-function setTab(t){tab=t;$$('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+t));post({cmd:'tab',name:t})}
-$$('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+const actions={clipboard:'<button class="link" id="cclear">Clear</button>',shelf:'<button class="link" id="sclear">Clear</button>',ai:'<button class="link" id="airef">Refresh</button>',system:'<button class="link" data-u2="taskmgr">Task Manager</button>',network:'<button class="link" data-u2="network">Settings</button>',power:'<button class="link" data-u2="power">Power settings</button>',volume:'<button class="link" data-u2="sound">Sound settings</button>'};
+function setTab(t){tab=t;$$('.sc').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+t));
+  $('#fSet').classList.toggle('on',t==='settings');$('#secTitle').textContent=TITLES[t];$('#secAct').innerHTML=actions[t]||'';$('main').scrollTop=0;post({cmd:'tab',name:t})}
+$$('.sc').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){setTab(g.dataset.go);return}
+  const u=e.target.closest('[data-u],[data-u2]');if(u){post({cmd:'util',name:u.dataset.u||u.dataset.u2});return}
+  const t=e.target.closest('[data-g]');if(t){if(t.dataset.g==='recycle'&&!confirm('Empty the Recycle Bin?'))return;post({cmd:'toggle',name:t.dataset.g});return}
+  if(e.target.closest('#cclear'))post({cmd:'clipClear'});if(e.target.closest('#sclear'))post({cmd:'shelfClear'});if(e.target.closest('#airef'))post({cmd:'aiRefresh'})});
+$('#fSet').onclick=()=>setTab(tab==='settings'?'overview':'settings');
+$('#fQuit').onclick=()=>post({cmd:'quit'});
 let pinned=false;$('#pin').onclick=()=>{pinned=!pinned;$('#pin').classList.toggle('on',pinned);post({cmd:'pin',on:pinned})};
+document.addEventListener('mousedown',()=>{if(!isOpen)post({cmd:'expand'})});
 
-// tooltips
 const tip=$('#tip');
 document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]');if(!el){tip.style.opacity=0;return}tip.textContent=el.dataset.tip;const r=el.getBoundingClientRect();tip.style.left=Math.min(innerWidth-tip.offsetWidth-6,Math.max(6,r.left+r.width/2-tip.offsetWidth/2))+'px';tip.style.top=(r.bottom+6)+'px';tip.style.opacity=1});
-
-// typing keeps the notch open
+let tt;function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2200)}
 document.addEventListener('focusin',e=>{if(e.target.matches('input:not([type=range]),textarea'))post({cmd:'typing',on:true})});
 document.addEventListener('focusout',e=>{if(e.target.matches('input:not([type=range]),textarea'))post({cmd:'typing',on:false})});
 
-// media
 $$('[data-m]').forEach(b=>b.onclick=()=>post({cmd:'media',action:b.dataset.m}));
 $('#mprog').onclick=e=>{if(!S.media||!S.media.dur)return;const r=e.currentTarget.getBoundingClientRect();post({cmd:'seek',pos:(e.clientX-r.left)/r.width*S.media.dur})};
-function renderMedia(m){
-  if(!m)return;const has=!!m.title;
-  $('#mt').textContent=has?m.title:'Nothing playing';
-  $('#ma').textContent=has?[m.artist,m.app].filter(Boolean).join(' · '):'Play something in Spotify, YouTube or any app';
+function renderMedia(m){if(!m)return;const has=!!m.title;
+  $('#mt').textContent=has?m.title:'Nothing playing';$('#ma').textContent=has?[m.artist,m.app].filter(Boolean).join(' · '):'Play music or a video in any app';
   $('#art').style.backgroundImage=m.art?`url(${m.art})`:'';$('#art').firstElementChild.style.display=m.art?'none':'';
-  $('#media').classList.toggle('paused',!m.playing);
-  $('#mplayi').innerHTML=m.playing?PAUSE:PLAY;
-  $('#mbar').style.width=(m.dur?Math.min(100,m.pos/m.dur*100):0)+'%';
-  $('#mpos').textContent=mmss(m.pos);$('#mdur').textContent=mmss(m.dur);
-  $('#part').style.backgroundImage=m.art?`url(${m.art})`:'';
-}
+  $('#mplay').innerHTML=m.playing?PAUSE:PLAY;$('#mbar').style.width=(m.dur?Math.min(100,m.pos/m.dur*100):0)+'%';
+  $('#part').style.backgroundImage=m.art?`url(${m.art})`:'';$('#peek').classList.toggle('paused',!m.playing)}
 
-// timer
-let presetSecs=0;
-$$('[data-s]').forEach(b=>b.onclick=()=>{presetSecs=+b.dataset.s;post({cmd:'timerStart',secs:presetSecs})});
-$('#tgo').onclick=()=>{const t=S.timer||{};if(t.running)post({cmd:'timerPause'});else if(t.left>0)post({cmd:'timerStart'});else post({cmd:'timerStart',secs:presetSecs||300})};
+$$('[data-s]').forEach(b=>b.onclick=()=>post({cmd:'timerStart',secs:+b.dataset.s}));
+$('#tgo').onclick=()=>{const t=S.timer||{};if(t.running)post({cmd:'timerPause'});else if(t.left>0)post({cmd:'timerStart'});else post({cmd:'timerStart',secs:300})};
 $('#treset').onclick=()=>post({cmd:'timerReset'});
-$('#swgo').onclick=()=>post({cmd:'swToggle'});$('#swreset').onclick=()=>post({cmd:'swReset'});
-function renderTimer(t){if(!t)return;$('#tleft').textContent=mmss(t.left);$('#tgo').textContent=t.running?'Pause':t.left>0?'Resume':'Start';
-  const sw=t.sw||0;$('#swv').textContent=mmss(Math.floor(sw))+'.'+Math.floor(sw*10%10);$('#swgo').textContent=t.swRunning?'Stop':'Start'}
+function renderTimer(t){if(!t)return;$('#tleft').textContent=mmss(t.left);$('#tgo').textContent=t.running?'Pause':t.left>0?'Resume':'Start'}
 
-// toggles
-$$('[data-g]').forEach(b=>b.onclick=()=>{if(b.dataset.g==='recycle'&&!confirm('Empty the Recycle Bin?'))return;post({cmd:'toggle',name:b.dataset.g})});
-function renderToggles(g){if(!g)return;$('[data-g=keepAwake]').classList.toggle('on',g.keepAwake);$('[data-g=mic]').classList.toggle('on',g.mic);$('[data-g=dark]').classList.toggle('on',g.dark)}
+$('#pAwake').onclick=()=>post({cmd:'toggle',name:'keepAwake'});
+function renderToggles(g){if(!g)return;$$('[data-g=keepAwake]').forEach(x=>x.classList.toggle('on',g.keepAwake));$('.tg[data-g=mic]').classList.toggle('on',g.mic);$('.tg[data-g=dark]').classList.toggle('on',g.dark);
+  $('#pAwake').classList.toggle('on',g.keepAwake);$('#status').classList.toggle('awake',g.keepAwake)}
 
-// system
-function spark(el,data,color,max){if(!data||!data.length)return;const m=max||Math.max(1,...data);const pts=data.map((v,i)=>`${i*(60/59)},${46-(v/m)*42-2}`).join(' ');
-  el.innerHTML=`<polygon points="0,46 ${pts} ${(data.length-1)*(60/59)},46" fill="${color}22"/><polyline points="${pts}" stroke="${color}"/>`}
+function spark(el,data,color,max){if(!el||!data||data.length<2)return;const m=max||Math.max(1,...data)*1.15;const n=data.length;const pts=data.map((v,i)=>`${(i/(n-1)*60).toFixed(2)},${(44-(v/m)*40-2).toFixed(2)}`).join(' ');
+  el.innerHTML=`<defs><linearGradient id="g${el.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><polygon points="0,44 ${pts} 60,44" fill="url(#g${el.id})"/><polyline points="${pts}" stroke="${color}"/>`}
+
 function renderSys(s){if(!s)return;
-  const ram=s.ramUsed/s.ramTotal*100;
-  $('#hc').style.width=s.cpu+'%';$('#hcv').textContent=Math.round(s.cpu)+'%';
-  $('#hr').style.width=ram+'%';$('#hrv').textContent=Math.round(ram)+'%';
-  const g=s.gpu>=0;$('#hg').style.width=(g?s.gpu:0)+'%';$('#hgv').textContent=g?Math.round(s.gpu)+'%':'-';
-  if(tab!=='system')return;
-  $('#sc').textContent=Math.round(s.cpu)+'%';spark($('#spc'),s.cpuHist,'#0a84ff',100);
-  $('#sgCard').style.display=g?'':'none';
-  if(g){$('#sgn').textContent=s.gpuName||'GPU';$('#sg').textContent=Math.round(s.gpu)+'%';$('#sgt').textContent=Math.round(s.gpuTemp)+'°C';$('#sgv').textContent=s.vramUsed.toFixed(1)+' / '+Math.round(s.vramTotal)+' GB';spark($('#spg'),s.gpuHist,'#30d158',100)}
-  $('#sr').textContent=s.ramUsed.toFixed(1)+' / '+Math.round(s.ramTotal)+' GB';$('#srb').style.width=ram+'%';
-  if(s.top)$('#stop').innerHTML=s.top.map(t=>`<div><span class="ell">${esc(t.name)}</span><span>${t.mem>=1024?(t.mem/1024).toFixed(1)+' GB':Math.round(t.mem)+' MB'}</span></div>`).join('');
-  $('#snd').textContent=rate(s.down);$('#snu').textContent=rate(s.up);spark($('#spn'),s.netHist,'#ff9f0a');
-  $('#sdf').textContent=gb(s.diskFree)+' of '+Math.round(s.diskTotal);
-  $('#sbatRow').style.display=s.battery>=0?'':'none';if(s.battery>=0)$('#sbat').textContent=Math.round(s.battery)+'%'+(s.charging?' ⚡':'');
+  const ram=s.ramUsed/s.ramTotal*100,g=s.gpu>=0;
+  $('#oCpu').textContent=Math.round(s.cpu)+'%';$('#oCpuS').textContent=s.cpuW>=0?W(s.cpuW):' ';
+  $('#oGpuT').style.display=g?'':'none';if(g){$('#oGpu').textContent=Math.round(s.gpu)+'%';$('#oGpuS').textContent=Math.round(s.gpuTemp)+'°C · '+W(s.gpuW)}
+  $('#oRam').textContent=Math.round(ram)+'%';$('#oRamS').textContent=s.ramUsed.toFixed(1)+' / '+Math.round(s.ramTotal)+' GB';
+  $('#oPow').textContent=s.totalW>0?W(s.totalW):'-';
+  $('#oNet').textContent=rate(s.down);$('#oNetS').textContent='↑ '+rate(s.up);
+  $('#statusT').textContent=(S.toggles&&S.toggles.keepAwake?'PC awake · ':'')+'Up '+mins(s.uptime);
+  $('#sCpu').textContent=Math.round(s.cpu)+'%'+(s.cpuW>=0?' · '+W(s.cpuW):'');spark($('#spCpu'),s.cpuHist,'#0a84ff',100);
+  $('#sGpuCard').style.display=g?'':'none';
+  if(g){$('#sGpuN').textContent=s.gpuName||'GPU';$('#sGpu').textContent=Math.round(s.gpu)+'%';$('#sGpuT').textContent=Math.round(s.gpuTemp)+'°C';$('#sVram').textContent=s.vramUsed.toFixed(1)+' / '+Math.round(s.vramTotal)+' GB';spark($('#spGpu'),s.gpuHist,'#30d158',100)}
+  $('#sRam').textContent=s.ramUsed.toFixed(1)+' / '+Math.round(s.ramTotal)+' GB';spark($('#spRam'),s.ramHist,'#64d2ff',100);
+  if(s.top)$('#sTop').innerHTML=s.top.map(t=>`<div class="kv"><span class="ell">${esc(t.name)}</span><b>${t.mem>=1024?(t.mem/1024).toFixed(1)+' GB':Math.round(t.mem)+' MB'}</b></div>`).join('');
+  $('#sDisk').textContent=Math.round(s.diskFree)+' GB of '+Math.round(s.diskTotal)+' GB';$('#sUp').textContent=mins(s.uptime);
+  $('#pTot').textContent=s.totalW>0?W(s.totalW):'-';spark($('#spPow'),s.powHist,'#ff9f0a');
+  $('#pCpu').textContent=s.cpuW>=0?W(s.cpuW):'Not available';
+  $('#pGpuRow').style.display=s.gpuW>=0?'':'none';$('#pGpu').textContent=W(s.gpuW)+(s.gpuLimit>0?' of '+Math.round(s.gpuLimit)+' W':'');
+  $('#pBatRow').style.display=s.battery>=0?'':'none';if(s.battery>=0)$('#pBat').textContent=Math.round(s.battery)+'%'+(s.charging?' · charging':'');
+  $('#nDown').textContent=rate(s.down);$('#nUp').textContent=rate(s.up);spark($('#spNet'),s.netHist,'#ff9f0a');
+  $('#nSessD').textContent=bytes(s.sessDown);$('#nSessU').textContent=bytes(s.sessUp);$('#nIp').textContent=s.ip||'-';
 }
 
-// mixer
 let dragging=null;
-function pct(el){el.style.setProperty('--p',el.value+'%')}
-const mv=$('#mv');mv.oninput=()=>{pct(mv);$('#mvv').textContent=mv.value+'%';post({cmd:'master',vol:mv.value/100})};
-mv.onpointerdown=()=>dragging='_master';mv.onpointerup=()=>dragging=null;
-$('#mmute').onclick=()=>post({cmd:'masterMute'});
-function renderMixer(st){
-  const m=st.master;if(m&&dragging!=='_master'){mv.value=Math.round(m.vol*100);pct(mv);$('#mvv').textContent=m.mute?'Muted':mv.value+'%';$('#mmute').textContent=m.mute?'Unmute':'Mute';if(m.output)$('#mout').textContent=m.output}
-  if(!st.apps)return;
-  const box=$('#apps');
-  if(!st.apps.length){box.innerHTML='<div class="sub" style="padding:20px">No app is playing sound right now.</div>';return}
+const pct=el=>el.style.setProperty('--p',el.value+'%');
+function bindVol(el,label){el.oninput=()=>{pct(el);$(label).textContent=el.value+'%';post({cmd:'master',vol:el.value/100})};el.onpointerdown=()=>dragging='_master';el.onpointerup=()=>dragging=null}
+bindVol($('#oVol'),'#oVolV');bindVol($('#vMaster'),'#vMasterV');
+$('#oMute').onclick=$('#vMute').onclick=()=>post({cmd:'masterMute'});
+function renderMixer(st){const m=st.master;
+  if(m&&dragging!=='_master'){const v=Math.round(m.vol*100);for(const [s,l] of [['#oVol','#oVolV'],['#vMaster','#vMasterV']]){$(s).value=v;pct($(s));$(l).textContent=m.mute?'Muted':v+'%'}
+    $('#oVolRow').classList.toggle('muted',m.mute);$('#vRow').classList.toggle('muted',m.mute);if(m.output)$('#vOut').textContent=m.output}
+  if(!st.apps)return;const box=$('#apps');
+  if(!st.apps.length){box.innerHTML='<div class="sub" style="padding:14px 0">No app is playing sound right now.</div>';box.dataset.ids='';return}
   const ids=st.apps.map(a=>a.id).join(',');
-  if(box.dataset.ids!==ids){box.dataset.ids=ids;box.innerHTML=st.apps.map(a=>`<div class="app" data-id="${esc(a.id)}">${a.icon?`<img src="${a.icon}">`:'<div class="ph"></div>'}<div style="min-width:0"><div class="ell">${esc(a.name)}</div><div class="meter"><i></i></div></div><input type="range" min="0" max="100"><span class="pct"></span><button class="mute"><svg><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></svg></button></div>`).join('');
+  if(box.dataset.ids!==ids){box.dataset.ids=ids;box.innerHTML=st.apps.map(a=>`<div class="app" data-id="${esc(a.id)}">${a.icon?`<img src="${a.icon}">`:'<div class="ph"></div>'}<div style="min-width:0"><div class="nm ell">${esc(a.name)}</div><input type="range" min="0" max="100"><div class="lvl"><i></i></div></div><span class="pct"></span><button class="mute"><svg><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></svg></button></div>`).join('');
     $$('#apps .app').forEach(row=>{const r=row.querySelector('input'),id=row.dataset.id;
       r.oninput=()=>{pct(r);row.querySelector('.pct').textContent=r.value+'%';post({cmd:'appVol',id,vol:r.value/100})};
-      r.onpointerdown=()=>dragging=id;r.onpointerup=()=>dragging=null;
-      row.querySelector('.mute').onclick=()=>post({cmd:'appMute',id})})}
+      r.onpointerdown=()=>dragging=id;r.onpointerup=()=>dragging=null;row.querySelector('.mute').onclick=()=>post({cmd:'appMute',id})})}
   st.apps.forEach(a=>{const row=box.querySelector(`[data-id="${CSS.escape(a.id)}"]`);if(!row)return;row.classList.toggle('muted',a.mute);
-    if(dragging!==a.id){const r=row.querySelector('input');r.value=Math.round(a.vol*100);pct(r);row.querySelector('.pct').textContent=a.mute?'Off':r.value+'%'}})
-}
-function renderMeters(items){items.forEach(x=>{if(x.id==='_master'){$('#mmeter').style.width=Math.min(100,x.peak*100)+'%';return}
-  const row=$('#apps').querySelector(`[data-id="${CSS.escape(x.id)}"] .meter i`);if(row)row.style.width=Math.min(100,x.peak*100)+'%'})}
+    if(dragging!==a.id){const r=row.querySelector('input');r.value=Math.round(a.vol*100);pct(r);row.querySelector('.pct').textContent=a.mute?'Off':r.value+'%'}})}
+function renderMeters(items){items.forEach(x=>{if(x.id==='_master'){$('#vMeter').style.width=Math.min(100,x.peak*100)+'%';return}
+  const el=$('#apps').querySelector(`[data-id="${CSS.escape(x.id)}"] .lvl i`);if(el)el.style.width=Math.min(100,x.peak*100)+'%'})}
 
-// clipboard
-let clips=[];
-$('#cs').oninput=renderClips;$('#cclear').onclick=()=>post({cmd:'clipClear'});
-function renderClips(){const q=$('#cs').value.toLowerCase();const box=$('#clist');
-  const list=clips.filter(c=>!q||c.text.toLowerCase().includes(q));
-  if(!list.length){box.innerHTML=`<div class="sub" style="padding:20px">${clips.length?'Nothing matches.':'Copy something and it shows up here. Click an item to paste it.'}</div>`;return}
-  box.innerHTML=list.map(c=>`<div class="clip" data-id="${c.id}">${c.kind==='image'?`<img src="${c.thumb}">`:c.kind==='files'?'<svg><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>':''}<div class="t">${esc(c.text)}</div><span class="ago">${c.ago}</span><div class="acts"><button class="icon-btn ${c.pinned?'pinned':''}" data-a="pin" data-tip="${c.pinned?'Unpin':'Pin'}"><svg><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2L7 14.2 2 9.3l6.9-1z"/></svg></button><button class="icon-btn" data-a="del" data-tip="Delete"><svg><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>${c.pinned?'<svg class="pinned" style="width:12px;height:12px"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2L7 14.2 2 9.3l6.9-1z"/></svg>':''}</div>`).join('');
-}
-$('#clist').onclick=e=>{const row=e.target.closest('.clip');if(!row)return;const a=e.target.closest('[data-a]');const id=row.dataset.id;
-  if(a){post({cmd:a.dataset.a==='pin'?'clipPin':'clipDel',id});return}post({cmd:'paste',id})};
+let clips=[];$('#cs').oninput=renderClips;
+const STAR='<svg style="width:14px;height:14px"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2L7 14.2 2 9.3l6.9-1z"/></svg>';
+function renderClips(){const q=$('#cs').value.toLowerCase(),box=$('#clist');const list=clips.filter(c=>!q||c.text.toLowerCase().includes(q));
+  if(!list.length){box.innerHTML=`<div class="sub" style="padding:16px 4px">${clips.length?'Nothing matches.':'Copy something and it shows up here. Click an item to paste it.'}</div>`;return}
+  box.innerHTML=list.map(c=>`<div class="clip" data-id="${c.id}">${c.kind==='image'?`<img src="${c.thumb}">`:''}<div class="t">${esc(c.text)}</div>${c.pinned?`<span class="pinned">${STAR}</span>`:''}<span class="ago">${c.ago}</span><div class="acts"><button class="ib" data-a="pin" data-tip="${c.pinned?'Unpin':'Pin'}">${STAR}</button><button class="ib" data-a="del" data-tip="Delete"><svg style="width:14px;height:14px"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div></div>`).join('')}
+$('#clist').onclick=e=>{const row=e.target.closest('.clip');if(!row)return;const a=e.target.closest('[data-a]');if(a){post({cmd:a.dataset.a==='pin'?'clipPin':'clipDel',id:row.dataset.id});return}post({cmd:'paste',id:row.dataset.id})};
 
-// shelf
-$('#sclear').onclick=()=>post({cmd:'shelfClear'});
-function renderShelf(list){if(!list)return;const box=$('#tiles');const key=list.map(f=>f.path).join('|');if(box.dataset.k===key)return;box.dataset.k=key;
-  if(!list.length){box.innerHTML='<div class="empty"><svg><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><div>Drop files here</div><div class="dim" style="font-size:11.5px">They stay until you remove them. Drag a tile out to use it.</div></div>';return}
-  box.innerHTML=list.map(f=>`<div class="tile" data-p="${esc(f.path)}" title="${esc(f.path)}">${f.icon?`<img src="${f.icon}">`:''}<div class="n ell">${esc(f.name)}</div><div class="s">${f.size}</div><button class="icon-btn x" data-a="rm" data-tip="Remove"><svg><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>`).join('')}
+function renderShelf(list){if(!list)return;const box=$('#tiles');const key=list.map(f=>f.path).join('|');if(box.dataset.k===key&&box.innerHTML)return;box.dataset.k=key;
+  if(!list.length){box.className='';box.innerHTML='<div class="empty"><svg><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><b>Drop files here</b><span class="dim" style="font-size:11.5px">Drag files onto the notch. They stay here until you drag them out or remove them.</span></div>';return}
+  box.className='shelf';box.innerHTML=list.map(f=>`<div class="ft" data-p="${esc(f.path)}" title="${esc(f.path)}">${f.icon?`<img src="${f.icon}">`:''}<div class="n ell">${esc(f.name)}</div><div class="s">${f.size}</div><button class="ib x" data-a="rm"><svg style="width:13px;height:13px"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>`).join('')}
 let down=null;
-$('#tiles').addEventListener('pointerdown',e=>{const t=e.target.closest('.tile');if(!t||e.target.closest('[data-a]'))return;down={p:t.dataset.p,x:e.clientX,y:e.clientY}});
+$('#tiles').addEventListener('pointerdown',e=>{const t=e.target.closest('.ft');if(!t||e.target.closest('[data-a]'))return;down={p:t.dataset.p,x:e.clientX,y:e.clientY}});
 $('#tiles').addEventListener('pointermove',e=>{if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>6){post({cmd:'dragOut',path:down.p});down=null}});
-$('#tiles').addEventListener('pointerup',e=>{const t=e.target.closest('.tile');const a=e.target.closest('[data-a]');if(a&&t)post({cmd:'shelfRemove',path:t.dataset.p});else if(down&&t)post({cmd:'shelfOpen',path:t.dataset.p});down=null});
-$('#tiles').addEventListener('contextmenu',e=>{const t=e.target.closest('.tile');if(t){e.preventDefault();post({cmd:'shelfReveal',path:t.dataset.p})}});
-// drag files from Explorer onto the notch
+$('#tiles').addEventListener('pointerup',e=>{const t=e.target.closest('.ft');const a=e.target.closest('[data-a]');if(a&&t)post({cmd:'shelfRemove',path:t.dataset.p});else if(down&&t)post({cmd:'shelfOpen',path:t.dataset.p});down=null});
+$('#tiles').addEventListener('contextmenu',e=>{const t=e.target.closest('.ft');if(t){e.preventDefault();post({cmd:'shelfReveal',path:t.dataset.p})}});
 let dragDepth=0;
 document.addEventListener('dragenter',e=>{if(e.dataTransfer.types.includes('Files')){dragDepth++;document.body.classList.add('dragging')}});
 document.addEventListener('dragleave',()=>{if(--dragDepth<=0){dragDepth=0;document.body.classList.remove('dragging')}});
 document.addEventListener('dragover',e=>e.preventDefault());
-document.addEventListener('drop',e=>{e.preventDefault();dragDepth=0;document.body.classList.remove('dragging');const files=[...e.dataTransfer.files];
-  if(files.length){chrome.webview.postMessageWithAdditionalObjects({cmd:'shelfDrop'},files);setTab('shelf')}});
+document.addEventListener('drop',e=>{e.preventDefault();dragDepth=0;document.body.classList.remove('dragging');const files=[...e.dataTransfer.files];if(files.length){chrome.webview.postMessageWithAdditionalObjects({cmd:'shelfDrop'},files);setTab('shelf')}});
 
-// notes
-let nt;$('#notes').oninput=()=>{$('#nsaved').textContent='';clearTimeout(nt);nt=setTimeout(()=>{post({cmd:'notes',text:$('#notes').value});$('#nsaved').textContent='Saved'},400)};
+let nt;$('#notes').oninput=()=>{clearTimeout(nt);nt=setTimeout(()=>post({cmd:'notes',text:$('#notes').value}),400)};
 
-// ai
-$('#airef').onclick=()=>post({cmd:'aiRefresh'});
 function renderAi(a){if(!a)return;const cx=a.codex,cl=a.claude;
-  if(cx&&cx.primary){const u=cx.primary.used;$('#cxr').style.strokeDashoffset=264-264*Math.min(100,u)/100;$('#cxr').style.stroke=u>85?'var(--bad)':u>60?'var(--warn)':'var(--acc)';$('#cxp').textContent=Math.round(u)+'%';
-    $('#cx5').textContent=Math.round(100-u)+'% left';$('#cx5s').textContent='5-hour limit · resets in '+mins(cx.primary.resetsIn);
-    $('#ha').style.width=u+'%';$('#hav').textContent=Math.round(u)+'%';}
-  else {$('#cx5').textContent='-';$('#cx5s').textContent=cx?'No limit info yet':'Codex not found on this PC'}
-  if(cx&&cx.weekly){$('#cxw').textContent=Math.round(cx.weekly.used)+'% · resets in '+mins(cx.weekly.resetsIn);$('#cxwb').style.width=cx.weekly.used+'%'}
-  if(cx)$('#cxt').textContent=k(cx.today)+' in '+cx.sessions+' session'+(cx.sessions===1?'':'s');
-  if(cl){$('#clm').textContent=k(cl.msgs);$('#clo').textContent=k(cl.outTokens);$('#cl5').textContent=k(cl.msgs5)+' replies · '+k(cl.out5)+' tokens';$('#clr').textContent=cl.msgs5?mins(cl.resetsIn):'-';$('#clc').textContent=k(cl.cacheTokens+cl.inTokens)}
-  else $('#clm').textContent='-';
-}
+  if(cx&&cx.primary){const u=cx.primary.used;$('#cxr').style.strokeDashoffset=264-264*Math.min(100,u)/100;$('#cxr').style.stroke=u>85?'var(--bad)':u>60?'var(--org)':'var(--acc)';$('#cxp').textContent=Math.round(u)+'%';
+    $('#cx5').textContent=Math.round(100-u)+'% left';$('#cx5s').textContent='5-hour limit · resets in '+mins(cx.primary.resetsIn);$('#oAi').textContent=Math.round(u)+'%';$('#oAiS').textContent='Codex · '+mins(cx.primary.resetsIn);}
+  else{$('#cx5').textContent='-';$('#cx5s').textContent=cx?'No limit info yet':'Codex not found on this PC'}
+  if(cx&&cx.weekly){$('#cxw').textContent=Math.round(cx.weekly.used)+'% · '+mins(cx.weekly.resetsIn);$('#cxwb').style.width=cx.weekly.used+'%'}
+  if(cx)$('#cxt').textContent=k(cx.today)+' · '+cx.sessions+' session'+(cx.sessions===1?'':'s');
+  if(cl){$('#clm').textContent=k(cl.msgs);$('#clo').textContent=k(cl.outTokens);$('#cl5').textContent=cl.msgs5?k(cl.msgs5)+' replies · '+k(cl.out5)+' tokens':'No active window';$('#clr').textContent=cl.msgs5?mins(cl.resetsIn):'-'}}
 
-// settings
-$$('.sw-t').forEach(t=>t.onclick=()=>{t.classList.toggle('on');post({cmd:'pref',name:t.dataset.p,on:t.classList.contains('on')})});
+$$('.sw-t[data-p]').forEach(t=>t.onclick=()=>{t.classList.toggle('on');post({cmd:'pref',name:t.dataset.p,on:t.classList.contains('on')})});
 
-// peek
-function renderPeek(){const m=S.media||{},t=S.timer||{};
-  if(timerDoneFlash>Date.now()){$('#pt1').textContent="Time's up";$('#pt2').textContent='Timer finished';$('#part').style.backgroundImage='';$('#peq').style.display='none';return}
+function renderPeek(){const m=S.media||{};
+  if(timerDoneFlash>Date.now()){$('#pt1').textContent="Time's up";$('#pt2').textContent='Your timer finished';$('#part').style.backgroundImage='';$('#peq').style.display='none';return}
   $('#peq').style.display='';$('#pt1').textContent=m.title||'';$('#pt2').textContent=[m.artist,m.app].filter(Boolean).join(' · ')}
 
-// messages from the app
 chrome.webview.addEventListener('message',e=>{const d=e.data;
   switch(d.type){
     case 'init':$('#notes').value=d.notes||'';$('#ver').textContent=d.version;
-      $('[data-p=peekOnSong]').classList.toggle('on',d.prefs.peekOnSong);$('[data-p=startWithWindows]').classList.toggle('on',d.prefs.startWithWindows);
-      if(!d.hasGpu){$('#hgl').style.display=$('#hgb').style.display=$('#hgv').style.display='none'}break;
-    case 'open':document.body.className='open';if(d.tab&&d.tab!==tab)setTab(d.tab);break;
+      $('[data-p=peekOnSong]').classList.toggle('on',d.prefs.peekOnSong);$('[data-p=startWithWindows]').classList.toggle('on',d.prefs.startWithWindows);break;
+    case 'open':isOpen=true;document.body.className='open';if(d.tab&&d.tab!==tab)setTab(d.tab);break;
     case 'peek':document.body.className='peek';renderPeek();break;
-    case 'close':document.body.className='';tip.style.opacity=0;break;
+    case 'close':isOpen=false;document.body.className='';tip.style.opacity=0;break;
+    case 'toast':toast(d.text);break;
     case 'timerDone':timerDoneFlash=Date.now()+3500;renderPeek();break;
     case 'meters':renderMeters(d.items);break;
-    case 'live':S=d;renderMedia(d.media);renderTimer(d.timer);renderSys(d.sys);renderToggles(d.toggles);renderMixer(d);
+    case 'live':S=d;renderMedia(d.media);renderTimer(d.timer);renderToggles(d.toggles);renderSys(d.sys);renderMixer(d);
       if(d.clips){clips=d.clips;renderClips()}renderShelf(d.shelf);renderAi(d.ai);if(document.body.classList.contains('peek'))renderPeek();break;
   }});
-// smooth local clock between updates
-setInterval(()=>{const t=S.timer;if(!t)return;if(t.running){t.left=Math.max(0,t.left-.1)}if(t.swRunning)t.sw+=.1;renderTimer(t);
-  const m=S.media;if(m&&m.playing&&m.dur){m.pos=Math.min(m.dur,m.pos+.1);$('#mbar').style.width=(m.pos/m.dur*100)+'%';$('#mpos').textContent=mmss(m.pos)}},100);
+setInterval(()=>{const t=S.timer;if(t&&t.running){t.left=Math.max(0,t.left-.25);renderTimer(t)}
+  const m=S.media;if(m&&m.playing&&m.dur){m.pos=Math.min(m.dur,m.pos+.25);$('#mbar').style.width=(m.pos/m.dur*100)+'%'}},250);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')post({cmd:'close'})});
 const fixSvg=root=>root.querySelectorAll('svg:not([viewBox])').forEach(s=>s.setAttribute('viewBox','0 0 24 24'));
 fixSvg(document);new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.tagName==='svg'&&!n.getAttribute('viewBox'))n.setAttribute('viewBox','0 0 24 24');fixSvg(n)}}))).observe(document.body,{childList:true,subtree:true});

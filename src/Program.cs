@@ -23,7 +23,7 @@ static class Program
         if (!mine) { MessageBox.Show("Notchy is already running. Move your mouse to the top middle of the screen.", "Notchy"); return; }
 
         var shot = args.Length >= 2 && args[0] == "--shot" ? args[1] : null; // QA: --shot out.png [tab]
-        var form = new NotchForm(shot, args.Length > 2 ? args[2] : "home");
+        var form = new NotchForm(shot, args.Length > 2 ? args[2] : "overview");
         var tray = new Tray(form, updated ? Version : null);
         form.Start();
         Application.Run(new ApplicationContext());

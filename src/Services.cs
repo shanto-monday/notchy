@@ -49,18 +49,18 @@ sealed class Services : IDisposable
     public object LiveState(string tab)
     {
         var (mv, mm) = Audio.Master();
-        bool sys = tab is "home" or "system";
+        bool sys = tab is "overview" or "system" or "power" or "network";
         return new
         {
             type = "live",
             media = Media.State(),
             timer = TimerState(),
-            master = new { vol = mv, mute = mm, output = tab == "mixer" ? Audio.OutputName : "" },
-            sys = sys ? Sys.Read(tab == "system") : null,
-            apps = tab == "mixer" ? Audio.Apps() : null,
+            master = new { vol = mv, mute = mm, output = tab is "volume" or "overview" ? Audio.OutputName : "" },
+            sys = sys ? Sys.Read(true) : null,
+            apps = tab == "volume" ? Audio.Apps() : null,
             clips = tab == "clipboard" ? Clips.List() : null,
-            shelf = tab is "shelf" or "home" ? Shelf.List() : null,
-            ai = tab is "ai" or "home" ? Ai.Read() : null,
+            shelf = tab is "shelf" or "overview" ? Shelf.List() : null,
+            ai = tab is "ai" or "overview" ? Ai.Read() : null,
             toggles = new { keepAwake, mic = Audio.MicMuted, dark = DarkMode }
         };
     }
@@ -130,9 +130,53 @@ sealed class Services : IDisposable
                     break;
                 }
             case "aiRefresh": Ai.Refresh(force: true); break;
+            case "util": Util((string)m["name"]); break;
+            case "expand": form.Expand(false); break;
             case "openUrl": try { Process.Start(new ProcessStartInfo((string)m["url"]) { UseShellExecute = true }); } catch { } break;
         }
     }
+
+    // ---- utilities
+    static readonly string[] Trackers = { "fbclid", "gclid", "igshid", "mc_cid", "mc_eid", "ref_src", "si", "spm", "_hsenc", "_hsmi", "yclid", "msclkid", "twclid", "ttclid", "dclid", "gbraid", "wbraid" };
+    void Util(string name)
+    {
+        switch (name)
+        {
+            case "cleanUrl":
+                try
+                {
+                    string t = Clipboard.GetText().Trim();
+                    if (!Uri.TryCreate(t, UriKind.Absolute, out var u) || string.IsNullOrEmpty(u.Query)) { form.Send(new { type = "toast", text = "No link with tracking on the clipboard" }); return; }
+                    var keep = u.Query.TrimStart('?').Split('&').Where(p => { string k = p.Split('=')[0].ToLowerInvariant(); return !(k.StartsWith("utm_") || Trackers.Contains(k)); }).ToArray();
+                    var clean = u.GetLeftPart(UriPartial.Path) + (keep.Length > 0 ? "?" + string.Join("&", keep) : "") + u.Fragment;
+                    Clipboard.SetText(clean);
+                    form.Send(new { type = "toast", text = clean == t ? "Link was already clean" : "Clean link copied" });
+                }
+                catch { }
+                break;
+            case "cleanTemp":
+                Task.Run(() =>
+                {
+                    long freed = 0;
+                    try
+                    {
+                        foreach (var f in Directory.EnumerateFiles(Path.GetTempPath(), "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true }))
+                            try { var fi = new FileInfo(f); if (fi.LastWriteTime < DateTime.Now.AddDays(-2)) { long l = fi.Length; fi.Delete(); freed += l; } } catch { }
+                    }
+                    catch { }
+                    form.BeginInvoke(() => form.Send(new { type = "toast", text = "Freed " + (freed / 1048576) + " MB of old temp files" }));
+                });
+                break;
+            case "taskmgr": Run("taskmgr.exe"); break;
+            case "sound": Run("ms-settings:sound"); break;
+            case "power": Run("ms-settings:powersleep"); break;
+            case "network": Run("ms-settings:network-status"); break;
+            case "storage": Run("ms-settings:storagesense"); break;
+            case "apps": Run("ms-settings:appsfeatures"); break;
+        }
+    }
+
+    void Run(string what) { form.Collapse(); try { Process.Start(new ProcessStartInfo(what) { UseShellExecute = true }); } catch { } }
 
     // ---- quick toggles
     void Toggle(string name)
@@ -193,7 +237,40 @@ sealed class SysMon
 {
     long idle0, kern0, user0;
     long rx0, tx0; DateTime netAt = DateTime.MinValue;
-    readonly Queue<float> cpuHist = new(), gpuHist = new(), netHist = new();
+    object topCache; DateTime topAt = DateTime.MinValue;
+    readonly Queue<float> cpuHist = new(), gpuHist = new(), netHist = new(), powHist = new(), ramHist = new();
+    long rxStart = -1, txStart = -1;
+    System.Diagnostics.PerformanceCounter cpuPower; bool cpuPowerTried;
+    // CPU package power from the Windows "Energy Meter" counters (no admin, no driver)
+    float CpuWatts()
+    {
+        if (!cpuPowerTried)
+        {
+            cpuPowerTried = true;
+            try
+            {
+                var cat = new System.Diagnostics.PerformanceCounterCategory("Energy Meter");
+                string inst = cat.GetInstanceNames().FirstOrDefault(i => i.EndsWith("_PKG", StringComparison.OrdinalIgnoreCase));
+                if (inst != null) { cpuPower = new System.Diagnostics.PerformanceCounter("Energy Meter", "Power", inst, true); cpuPower.NextValue(); }
+            }
+            catch { cpuPower = null; }
+        }
+        try { return cpuPower == null ? -1 : cpuPower.NextValue() / 1000f; } catch { return -1; } // milliwatts -> W
+    }
+    static string LocalIp()
+    {
+        try
+        {
+            foreach (var n in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (n.OperationalStatus != OperationalStatus.Up || n.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel) continue;
+                var p = n.GetIPProperties(); if (p.GatewayAddresses.Count == 0) continue;
+                foreach (var a in p.UnicastAddresses) if (a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) return a.Address.ToString();
+            }
+        }
+        catch { }
+        return "";
+    }
     IntPtr nvDev; bool nvTried;
     public bool HasGpu { get { InitNv(); return nvDev != IntPtr.Zero; } }
     string gpuName = "";
@@ -226,7 +303,7 @@ sealed class SysMon
         double ramUsed = (ms.ullTotalPhys - ms.ullAvailPhys) / 1073741824.0, ramTotal = ms.ullTotalPhys / 1073741824.0;
         // GPU (NVIDIA via NVML, comes with the driver)
         InitNv();
-        float gpu = -1, gtemp = -1; double vUsed = 0, vTotal = 0;
+        float gpu = -1, gtemp = -1, gpuW = -1, gpuLimit = -1; double vUsed = 0, vTotal = 0;
         if (nvDev != IntPtr.Zero)
         {
             try
@@ -234,6 +311,8 @@ sealed class SysMon
                 if (nvmlDeviceGetUtilizationRates(nvDev, out var u) == 0) gpu = u.gpu;
                 if (nvmlDeviceGetTemperature(nvDev, 0, out uint t) == 0) gtemp = t;
                 if (nvmlDeviceGetMemoryInfo(nvDev, out var mi) == 0) { vUsed = mi.used / 1073741824.0; vTotal = mi.total / 1073741824.0; }
+                if (nvmlDeviceGetPowerUsage(nvDev, out uint mw) == 0) gpuW = mw / 1000f;
+                if (nvmlDeviceGetEnforcedPowerLimit(nvDev, out uint lim) == 0) gpuLimit = lim / 1000f;
             }
             catch { }
         }
@@ -249,15 +328,19 @@ sealed class SysMon
         double secs = Math.Max(0.2, (DateTime.Now - netAt).TotalSeconds);
         double down = netAt == DateTime.MinValue ? 0 : Math.Max(0, (rx - rx0) / secs), up = netAt == DateTime.MinValue ? 0 : Math.Max(0, (tx - tx0) / secs);
         rx0 = rx; tx0 = tx; netAt = DateTime.Now;
-        Push(cpuHist, cpu); Push(gpuHist, Math.Max(0, gpu)); Push(netHist, (float)down);
+        if (rxStart < 0) { rxStart = rx; txStart = tx; }
+        float cpuW = CpuWatts();
+        float total = Math.Max(0, cpuW) + Math.Max(0, gpuW);
+        Push(cpuHist, cpu); Push(gpuHist, Math.Max(0, gpu)); Push(netHist, (float)down); Push(powHist, total); Push(ramHist, (float)(ramUsed / ramTotal * 100));
         // disk + battery
         double diskFree = 0, diskTotal = 0;
         try { var d = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!); diskFree = d.AvailableFreeSpace / 1073741824.0; diskTotal = d.TotalSize / 1073741824.0; } catch { }
         var ps = SystemInformation.PowerStatus;
         bool hasBattery = (ps.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) == 0 && ps.BatteryLifePercent <= 1;
-        object top = null;
-        if (detail)
+        object top = topCache;
+        if (detail && (DateTime.Now - topAt).TotalSeconds > 4)
         {
+            topAt = DateTime.Now;
             try
             {
                 top = Process.GetProcesses()
@@ -265,13 +348,16 @@ sealed class SysMon
                     .Where(x => x.name != "" && x.name != "Idle" && x.name != "Memory Compression")
                     .GroupBy(x => x.name).Select(g => new { name = g.Key, mem = g.Sum(x => x.mem) / 1048576.0 })
                     .OrderByDescending(x => x.mem).Take(5).ToList();
+                topCache = top;
             }
             catch { }
         }
         return new
         {
             cpu, ramUsed, ramTotal, gpu, gpuTemp = gtemp, gpuName, vramUsed = vUsed, vramTotal = vTotal,
-            down, up, diskFree, diskTotal,
+            down, up, diskFree, diskTotal, sessDown = rx - rxStart, sessUp = tx - txStart, ip = detail ? LocalIp() : "",
+            cpuW, gpuW, gpuLimit, totalW = total, powHist = detail ? powHist.ToArray() : null, ramHist = detail ? ramHist.ToArray() : null,
+            uptime = Environment.TickCount64 / 60000.0,
             battery = hasBattery ? ps.BatteryLifePercent * 100 : -1, charging = ps.PowerLineStatus == PowerLineStatus.Online,
             cpuHist = detail ? cpuHist.ToArray() : null, gpuHist = detail ? gpuHist.ToArray() : null, netHist = detail ? netHist.ToArray() : null,
             top
@@ -290,6 +376,8 @@ sealed class SysMon
     [DllImport("nvml.dll")] static extern int nvmlDeviceGetUtilizationRates(IntPtr dev, out NvUtil u);
     [DllImport("nvml.dll")] static extern int nvmlDeviceGetTemperature(IntPtr dev, int sensor, out uint t);
     [DllImport("nvml.dll")] static extern int nvmlDeviceGetMemoryInfo(IntPtr dev, out NvMem m);
+    [DllImport("nvml.dll")] static extern int nvmlDeviceGetPowerUsage(IntPtr dev, out uint mw);
+    [DllImport("nvml.dll")] static extern int nvmlDeviceGetEnforcedPowerLimit(IntPtr dev, out uint mw);
 }
 
 // ------------------------------------------------------------------ clipboard history

@@ -24,5 +24,6 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
     <EmbeddedResource Include="web\index.html" LogicalName="index.html" />
     <EmbeddedResource Include="repo.txt" LogicalName="repo.txt" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.1" />
   </ItemGroup>
 </Project>

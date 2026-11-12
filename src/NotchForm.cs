@@ -1,5 +1,6 @@
-// The notch: a hidden WebView2 panel that grows out of the top middle of the screen,
-// plus a tiny click-through pill that marks where it lives.
+// The notch: one always-alive WebView2 window at the top middle of the screen.
+// Only its visible shape (window region) changes: a slim pill when closed, a pop-down panel when open.
+// Changing the region is cheap, so the open/close animation stays smooth (no WebView resize per frame).
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -11,12 +12,11 @@ namespace Notchy;
 sealed class NotchForm : Form
 {
     // sizes in 96-dpi units
-    const int OpenW = 820, OpenH = 340, PeekW = 400, PeekH = 74, Hidden = 12; // Hidden = part above the screen edge (hides top corners)
+    const int PanelW = 440, PanelMax = 700, PillW = 200, PillH = 9, PeekW = 380, PeekH = 72, Hidden = 12, Radius = 22;
 
     readonly WebView2 web = new() { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.Black };
-    readonly Pill pill = new();
     readonly System.Windows.Forms.Timer poll = new() { Interval = 30 };
-    readonly System.Windows.Forms.Timer anim = new() { Interval = 10 };
+    readonly System.Windows.Forms.Timer anim = new() { Interval = 8 };
     readonly System.Windows.Forms.Timer live = new() { Interval = 1000 };
     readonly System.Windows.Forms.Timer meters = new() { Interval = 100 };
     readonly string shotPath, shotTab;
@@ -27,10 +27,10 @@ sealed class NotchForm : Form
     enum State { Closed, Opening, Open, Peek, Closing }
     State state = State.Closed;
     bool pinned, typing, ready, quitting, fullscreen;
-    string tab = "home";
+    string tab = "overview";
     DateTime zoneSince = DateTime.MaxValue, leftSince = DateTime.MaxValue, peekUntil;
     IntPtr prevForeground;
-    Rectangle animFrom, animTo; DateTime animStart; int animMs;
+    RectangleF animFrom, animTo, cur; DateTime animStart; int animMs;
 
     public NotchForm(string shotPath, string shotTab)
     {
@@ -41,8 +41,8 @@ sealed class NotchForm : Form
         Svc = new Services(this);
         poll.Tick += (_, _) => Poll();
         anim.Tick += (_, _) => Animate();
-        live.Tick += (_, _) => { if (ready && state == State.Open) PushLive(); Svc.Tick(); };
-        meters.Tick += (_, _) => { if (ready && state == State.Open && tab == "mixer") Send(new { type = "meters", items = Svc.Audio.Meters() }); };
+        live.Tick += (_, _) => { if (ready && state is State.Open or State.Peek) PushLive(); Svc.Tick(); };
+        meters.Tick += (_, _) => { if (ready && state == State.Open && tab == "volume") Send(new { type = "meters", items = Svc.Audio.Meters() }); };
     }
 
     protected override bool ShowWithoutActivation => true;
@@ -52,26 +52,28 @@ sealed class NotchForm : Form
     }
 
     float S => DeviceDpi / 96f;
+    // tall enough for the overview, but never taller than 88% of the screen
+    int PanelH => (int)Math.Min(PanelMax, Screen.PrimaryScreen!.Bounds.Height / S * 0.88f - Hidden);
     Rectangle Scr => Screen.PrimaryScreen!.Bounds;
-    Rectangle RectFor(int w, int h)
-    {
-        int pw = (int)(w * S), ph = (int)((h + Hidden) * S);
-        return new Rectangle(Scr.Left + (Scr.Width - pw) / 2, Scr.Top - (int)(Hidden * S), pw, ph);
-    }
+    int Wpx => (int)(PanelW * S);
+    int Hpx => (int)((PanelH + Hidden) * S);
 
-    // created off screen so WebView2 can start, then hidden until the notch opens
+    // shapes inside the window (window coordinates, px)
+    RectangleF Shape(float w, float h) => new((Wpx - w * S) / 2f, 0, w * S, (h + Hidden) * S);
+    RectangleF PillShape => Shape(PillW, PillH);
+    RectangleF PanelShape => Shape(PanelW, PanelH);
+    RectangleF PeekShape => Shape(PeekW, PeekH);
+
     public async void Start()
     {
-        Bounds = new Rectangle(-30000, -30000, (int)(OpenW * S), (int)(OpenH * S));
+        Bounds = new Rectangle(Scr.Left + (Scr.Width - Wpx) / 2, Scr.Top - (int)(Hidden * S), Wpx, Hpx);
+        SetShape(RectangleF.Empty);
         Show();
         await Init();
-        if (shotPath == null) Hide();
     }
 
     async Task Init()
     {
-        int round = 2; DwmSetWindowAttribute(Handle, 33, ref round, 4);          // rounded corners (Win 11)
-        int none = unchecked((int)0xFFFFFFFE); DwmSetWindowAttribute(Handle, 34, ref none, 4); // no border line
         RegisterHotKey(Handle, 1, 0x1 | 0x2 | 0x4000, (int)Keys.N); // Ctrl+Alt+N
         var env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Notchy", "web"));
         await web.EnsureCoreWebView2Async(env);
@@ -85,23 +87,55 @@ sealed class NotchForm : Form
         using (var r = new StreamReader(st)) cw.NavigateToString(r.ReadToEnd());
 
         if (shotPath != null) { await Shot(); return; }
-        pill.Place(Scr, S);
+        SetShape(PillShape); cur = PillShape;
         poll.Start(); live.Start(); meters.Start();
     }
 
-    // QA: render the open notch and save a PNG
+    // QA: render the open panel and save a PNG
     async Task Shot()
     {
-        Bounds = RectFor(OpenW, OpenH); Show();
         for (int i = 0; i < 100 && !ready; i++) await Task.Delay(50);
+        SetShape(PanelShape);
         state = State.Open; tab = shotTab;
         Send(new { type = "open", tab = shotTab });
         PushLive(); Send(new { type = "meters", items = Svc.Audio.Meters() });
-        await Task.Delay(1800);
-        PushLive();
-        await Task.Delay(400);
+        await Task.Delay(1500); PushLive(); await Task.Delay(1200); PushLive(); await Task.Delay(500);
         using (var fs = File.Create(shotPath)) await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, fs);
         Application.Exit();
+    }
+
+    // ---------------------------------------------------------------- shape + animation
+    static readonly bool Dbg = Environment.GetEnvironmentVariable("NOTCHY_DEBUG") == "1";
+    static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
+    static void Log(string s) { if (Dbg) try { File.AppendAllText(Path.Combine(Program.DataDir, "debug.log"), Clock.ElapsedMilliseconds + " " + s + "\n"); } catch { } }
+
+    void SetShape(RectangleF r)
+    {
+        Log("shape " + state + " " + r.Width.ToString("0") + "x" + r.Height.ToString("0") + " win " + Width + "x" + Height);
+        IntPtr rgn;
+        if (r.Width < 1 || r.Height < 1) rgn = CreateRectRgn(0, 0, 0, 0);
+        else
+        {
+            int rad = (int)(Math.Min(Radius * S, Math.Min(r.Width, r.Height - Hidden * S)) * 2);
+            rgn = CreateRoundRectRgn((int)r.Left, (int)r.Top - rad, (int)Math.Ceiling(r.Right) + 1, (int)Math.Ceiling(r.Bottom) + 1, Math.Max(2, rad), Math.Max(2, rad));
+        }
+        SetWindowRgn(Handle, rgn, true); // Windows owns the region now
+    }
+
+    void StartAnim(RectangleF to, int ms) { animFrom = cur; animTo = to; animStart = DateTime.Now; animMs = ms; anim.Start(); Animate(); }
+
+    void Animate()
+    {
+        double t = Math.Min(1, (DateTime.Now - animStart).TotalMilliseconds / animMs);
+        // springy ease-out when opening, quick ease-in when closing
+        double e = state == State.Closing ? t * t * t : 1 - Math.Pow(1 - t, 4);
+        float L(float a, float b) => (float)(a + (b - a) * e);
+        cur = new RectangleF(L(animFrom.X, animTo.X), 0, L(animFrom.Width, animTo.Width), L(animFrom.Height, animTo.Height));
+        SetShape(cur);
+        if (t < 1) return;
+        anim.Stop();
+        if (state == State.Opening) state = State.Open;
+        else if (state == State.Closing) { state = State.Closed; SetShape(fullscreen ? RectangleF.Empty : PillShape); }
     }
 
     // ---------------------------------------------------------------- hover logic
@@ -109,28 +143,35 @@ sealed class NotchForm : Form
     {
         var p = Cursor.Position;
         bool fs = IsFullscreenApp();
-        if (fs != fullscreen) { fullscreen = fs; pill.Visible2 = !fs && state == State.Closed; }
+        if (fs != fullscreen)
+        {
+            fullscreen = fs;
+            if (state == State.Closed) SetShape(fs ? RectangleF.Empty : PillShape);
+        }
+        var b = Bounds;
         if (state == State.Closed)
         {
             if (fullscreen) return;
-            int half = Math.Max((int)(Pill.W * S / 2) + (int)(60 * S), (int)(130 * S));
-            bool inZone = p.Y <= Scr.Top + 2 && Math.Abs(p.X - (Scr.Left + Scr.Width / 2)) <= half && Scr.Contains(p.X, Scr.Top);
-            if (inZone) { if (zoneSince == DateTime.MaxValue) zoneSince = DateTime.Now; else if ((DateTime.Now - zoneSince).TotalMilliseconds > 110) Expand(false); }
+            int half = (int)(PillW * S / 2) + (int)(50 * S);
+            bool inZone = p.Y <= Scr.Top + 2 && Math.Abs(p.X - (Scr.Left + Scr.Width / 2)) <= half;
+            if (inZone) { if (zoneSince == DateTime.MaxValue) zoneSince = DateTime.Now; else if ((DateTime.Now - zoneSince).TotalMilliseconds > 100) Expand(false); }
             else zoneSince = DateTime.MaxValue;
             return;
         }
+        var shape = state == State.Peek ? PeekShape : PanelShape;
+        var screenShape = new Rectangle(b.Left + (int)shape.X, b.Top, (int)shape.Width, (int)shape.Height);
         if (state == State.Peek)
         {
-            if (Bounds.Contains(p)) { Expand(false); return; }
+            if (screenShape.Contains(p)) { Expand(false); return; }
             if (DateTime.Now > peekUntil) Collapse();
             return;
         }
         if (state != State.Open) return;
-        var r = Bounds; r.Inflate((int)(24 * S), (int)(24 * S));
+        var r = screenShape; r.Inflate((int)(20 * S), (int)(20 * S));
         bool keep = pinned || (typing && ContainsFocus) || Control.MouseButtons != MouseButtons.None;
         if (r.Contains(p) || keep) { leftSince = DateTime.MaxValue; return; }
         if (leftSince == DateTime.MaxValue) leftSince = DateTime.Now;
-        else if ((DateTime.Now - leftSince).TotalMilliseconds > 280) Collapse();
+        else if ((DateTime.Now - leftSince).TotalMilliseconds > 250) Collapse();
     }
 
     protected override void OnDeactivate(EventArgs e)
@@ -141,53 +182,32 @@ sealed class NotchForm : Form
 
     public void Expand(bool pinned)
     {
-        if (fullscreen && !pinned) return;
+        if (!ready || (fullscreen && !pinned)) return;
         this.pinned |= pinned;
-        if (state == State.Open || state == State.Opening) { if (pinned) Activate(); return; }
+        if (state is State.Open or State.Opening) { if (pinned) Activate(); return; }
         var fg = GetForegroundWindow();
         if (fg != Handle) prevForeground = fg;
-        var from = state == State.Closed ? RectFor(Pill.W, Pill.H) : Bounds;
-        state = State.Opening; leftSince = DateTime.MaxValue;
-        pill.Visible2 = false;
-        Bounds = from;
-        if (!Visible) Show();
+        state = State.Opening; leftSince = DateTime.MaxValue; Log("expand");
+        StartAnim(PanelShape, 260);              // first frame right away
         if (pinned) Activate();
-        if (ready) { Send(new { type = "open", tab }); PushLive(); }
-        StartAnim(from, RectFor(OpenW, OpenH), 210);
+        Send(new { type = "open", tab });
+        BeginInvoke(PushLive);
     }
 
     public void Peek()
     {
         if (state != State.Closed || fullscreen || !ready) return;
         state = State.Peek; peekUntil = DateTime.Now.AddSeconds(3);
-        pill.Visible2 = false;
-        var from = RectFor(Pill.W, Pill.H);
-        Bounds = from; Show();
-        Send(new { type = "peek" }); PushLive();
-        StartAnim(from, RectFor(PeekW, PeekH), 180);
+        animFrom = cur; animTo = PeekShape; animStart = DateTime.Now; animMs = 220; anim.Start();
+        Send(new { type = "peek" }); BeginInvoke(PushLive);
     }
 
     public void Collapse()
     {
-        if (state == State.Closed || state == State.Closing) return;
+        if (state is State.Closed or State.Closing) return;
         state = State.Closing; pinned = false; typing = false;
-        if (ready) Send(new { type = "close" });
-        StartAnim(Bounds, RectFor(Pill.W, Pill.H), 150);
-    }
-
-    void StartAnim(Rectangle from, Rectangle to, int ms) { animFrom = from; animTo = to; animStart = DateTime.Now; animMs = ms; anim.Start(); }
-
-    void Animate()
-    {
-        double t = Math.Min(1, (DateTime.Now - animStart).TotalMilliseconds / animMs);
-        double e = state == State.Closing ? t * t : 1 - Math.Pow(1 - t, 3); // ease out on open, ease in on close
-        int L(int a, int b) => (int)Math.Round(a + (b - a) * e);
-        var r = new Rectangle(L(animFrom.X, animTo.X), L(animFrom.Y, animTo.Y), L(animFrom.Width, animTo.Width), L(animFrom.Height, animTo.Height));
-        SetWindowPos(Handle, (IntPtr)(-1), r.X, r.Y, r.Width, r.Height, 0x10 | 0x400); // NOACTIVATE | NOSENDCHANGING
-        if (t < 1) return;
-        anim.Stop();
-        if (state == State.Opening) state = State.Open;
-        else if (state == State.Closing) { state = State.Closed; Hide(); if (!fullscreen) pill.Visible2 = true; }
+        Send(new { type = "close" });
+        StartAnim(PillShape, 170);
     }
 
     // games / videos in fullscreen: stay out of the way
@@ -199,7 +219,8 @@ sealed class NotchForm : Form
 
     protected override void WndProc(ref Message m)
     {
-        if (m.Msg == 0x0312) { if (state == State.Open && pinned) Collapse(); else Expand(true); } // WM_HOTKEY
+        if (m.Msg == 0x0312) { if (state == State.Open) Collapse(); else Expand(true); } // WM_HOTKEY
+        if (m.Msg == 0x0201 && state == State.Closed) { Expand(true); return; }          // click on the pill
         base.WndProc(ref m);
     }
 
@@ -211,7 +232,16 @@ sealed class NotchForm : Form
         try { web.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(o, Json)); } catch { }
     }
 
-    void PushLive() => Send(Svc.LiveState(tab));
+    // live data is gathered off the UI thread so animations never wait for it
+    bool liveBusy;
+    async void PushLive()
+    {
+        if (liveBusy || !ready) return;
+        liveBusy = true;
+        try { string t = tab; var st = await Task.Run(() => Svc.LiveState(t)); Send(st); }
+        catch { }
+        finally { liveBusy = false; }
+    }
 
     void OnMessage(CoreWebView2WebMessageReceivedEventArgs e)
     {
@@ -220,14 +250,12 @@ sealed class NotchForm : Form
         string cmd = (string)m?["cmd"] ?? "";
         switch (cmd)
         {
-            case "ready":
-                ready = true;
-                Send(Svc.InitState());
-                break;
-            case "tab": tab = (string)m["name"] ?? "home"; PushLive(); break;
+            case "ready": ready = true; Send(Svc.InitState()); break;
+            case "tab": tab = (string)m["name"] ?? "overview"; PushLive(); break;
             case "typing": typing = (bool?)m["on"] ?? false; break;
             case "pin": pinned = (bool?)m["on"] ?? false; if (pinned) Activate(); break;
             case "close": Collapse(); break;
+            case "quit": Quit(); break;
             case "shelfDrop":
                 var paths = new List<string>();
                 if (e.AdditionalObjects != null)
@@ -246,12 +274,10 @@ sealed class NotchForm : Form
                     break;
                 }
             case "paste":
-                {
-                    string text = Svc.Clips.Prepare((string)m["id"]);
-                    Collapse();
-                    PasteInto(prevForeground);
-                    break;
-                }
+                Svc.Clips.Prepare((string)m["id"]);
+                Collapse();
+                PasteInto(prevForeground);
+                break;
             default:
                 Svc.Handle(cmd, m);
                 PushLive();
@@ -272,7 +298,6 @@ sealed class NotchForm : Form
         quitting = true;
         poll.Stop(); live.Stop(); meters.Stop();
         Svc.Dispose();
-        pill.Close();
         UnregisterHotKey(Handle, 1);
         Application.Exit();
     }
@@ -283,65 +308,12 @@ sealed class NotchForm : Form
         base.OnFormClosing(e);
     }
 
-    [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr h, int attr, ref int value, int size);
-    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int hgt, uint flags);
+    [DllImport("user32.dll")] static extern int SetWindowRgn(IntPtr h, IntPtr rgn, bool redraw);
+    [DllImport("gdi32.dll")] static extern IntPtr CreateRoundRectRgn(int x1, int y1, int x2, int y2, int w, int h);
+    [DllImport("gdi32.dll")] static extern IntPtr CreateRectRgn(int x1, int y1, int x2, int y2);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr h, int id, int mods, int vk);
     [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr h, int id);
     [DllImport("shell32.dll")] static extern int SHQueryUserNotificationState(out int state);
-}
-
-// small black pill at the top middle (click-through, anti-aliased, layered window)
-sealed class Pill : Form
-{
-    public const int W = 190, H = 8;
-    bool shown;
-    public Pill()
-    {
-        FormBorderStyle = FormBorderStyle.None; ShowInTaskbar = false; TopMost = true; StartPosition = FormStartPosition.Manual;
-    }
-    protected override bool ShowWithoutActivation => true;
-    protected override CreateParams CreateParams
-    {
-        get { var cp = base.CreateParams; cp.ExStyle |= 0x80000 | 0x20 | 0x80 | 0x8 | 0x08000000; return cp; } // LAYERED TRANSPARENT TOOLWINDOW TOPMOST NOACTIVATE
-    }
-    public bool Visible2
-    {
-        set { if (value == shown) return; shown = value; if (value) Show(); else Hide(); }
-    }
-    public void Place(Rectangle scr, float s)
-    {
-        int w = (int)(W * s), h = (int)(H * s) + 2;
-        using var bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(bmp))
-        {
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            float r = h - 1;
-            using var path = new System.Drawing.Drawing2D.GraphicsPath();
-            path.AddLine(0, -1, w, -1);
-            path.AddArc(w - 2 * r, -r - 1, 2 * r, 2 * r, 0, 90);
-            path.AddArc(0, -r - 1, 2 * r, 2 * r, 90, 90);
-            path.CloseFigure();
-            g.FillPath(Brushes.Black, path);
-        }
-        var pos = new POINT { X = scr.Left + (scr.Width - w) / 2, Y = scr.Top };
-        Bounds = new Rectangle(pos.X, pos.Y, w, h);
-        Visible2 = true;
-        IntPtr screen = GetDC(IntPtr.Zero), mem = CreateCompatibleDC(screen), hb = bmp.GetHbitmap(Color.FromArgb(0)), old = SelectObject(mem, hb);
-        var size = new SIZE { W = w, H = h }; var src = new POINT();
-        var blend = new BLEND { Op = 0, Flags = 0, Alpha = 255, Format = 1 };
-        UpdateLayeredWindow(Handle, screen, ref pos, ref size, mem, ref src, 0, ref blend, 2);
-        SelectObject(mem, old); DeleteObject(hb); DeleteDC(mem); ReleaseDC(IntPtr.Zero, screen);
-    }
-    [StructLayout(LayoutKind.Sequential)] struct POINT { public int X, Y; }
-    [StructLayout(LayoutKind.Sequential)] struct SIZE { public int W, H; }
-    [StructLayout(LayoutKind.Sequential, Pack = 1)] struct BLEND { public byte Op, Flags, Alpha, Format; }
-    [DllImport("user32.dll")] static extern bool UpdateLayeredWindow(IntPtr h, IntPtr dst, ref POINT pt, ref SIZE sz, IntPtr src, ref POINT srcPt, int key, ref BLEND bf, int flags);
-    [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr h);
-    [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr h, IntPtr dc);
-    [DllImport("gdi32.dll")] static extern IntPtr CreateCompatibleDC(IntPtr dc);
-    [DllImport("gdi32.dll")] static extern bool DeleteDC(IntPtr dc);
-    [DllImport("gdi32.dll")] static extern IntPtr SelectObject(IntPtr dc, IntPtr o);
-    [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr o);
 }
