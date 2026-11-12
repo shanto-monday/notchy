@@ -99,7 +99,8 @@ sealed class NotchForm : Form
         state = State.Open; tab = shotTab;
         Send(new { type = "open", tab = shotTab });
         PushLive(); Send(new { type = "meters", items = Svc.Audio.Meters() });
-        await Task.Delay(1500); PushLive(); await Task.Delay(1200); PushLive(); await Task.Delay(500);
+        for (int i = 0; i < 6; i++) { Svc.Tick(); await Task.Delay(500); }
+        await Task.Delay(300); PushLive(); await Task.Delay(1200); PushLive(); await Task.Delay(500);
         using (var fs = File.Create(shotPath)) await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, fs);
         Application.Exit();
     }

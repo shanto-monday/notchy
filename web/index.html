@@ -106,6 +106,7 @@ main{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
 .li .t{flex:1;min-width:0}
 .li .t b{display:block;font-size:13px;font-weight:600}
 .li .t span{display:block;font-size:12px;color:var(--sub)}
+.li .t .tag{display:inline-block;font-size:9.5px;margin-left:6px;vertical-align:2px;padding:1px 6px}
 .bat{display:flex;align-items:center;gap:6px;font-weight:600;font-variant-numeric:tabular-nums;font-size:12.5px}
 .batt{width:26px;height:13px;border:1.6px solid var(--sub);border-radius:4px;padding:1.5px;position:relative}
 .batt::after{content:"";position:absolute;right:-4px;top:3px;width:2px;height:4px;border-radius:0 1px 1px 0;background:var(--sub)}
@@ -244,7 +245,7 @@ body.dragging #drop{display:flex}
         <button class="stat press" data-go="system"><span>CPU</span><b id="oCpu">0%</b><small id="oCpuS">&nbsp;</small></button>
         <button class="stat press" data-go="system" id="oGpuT"><span>GPU</span><b id="oGpu">-</b><small id="oGpuS">&nbsp;</small></button>
         <button class="stat press" data-go="system"><span>Memory</span><b id="oRam">0%</b><small id="oRamS">&nbsp;</small></button>
-        <button class="stat press" data-go="system"><span>Power</span><b id="oPow">-</b><small>CPU + GPU</small></button>
+        <button class="stat press" data-go="system"><span>Power</span><b id="oPow">-</b><small>whole setup</small></button>
       </div>
       <div class="mod"><div class="modh"><b>Bluetooth</b><button class="more" data-go="bluetooth">All<svg><path d="m9 18 6-6-6-6"/></svg></button></div><div class="chips" id="oBt"></div></div>
       
@@ -280,16 +281,18 @@ body.dragging #drop{display:flex}
 
     <!-- SYSTEM -->
     <section class="view" id="v-system">
-      <div class="mod"><div class="kv"><span>Processor</span><b id="sCpu">0%</b></div><svg class="spark" id="spCpu" viewBox="0 0 60 44" preserveAspectRatio="none"></svg></div>
+      <div class="mod"><div class="kv"><span>Whole setup now<br><small class="dim" style="font-size:11px">PC + screens, at the wall</small></span><b class="big disp" id="pTot">-</b></div><svg class="spark" id="spPow" viewBox="0 0 60 44" preserveAspectRatio="none" style="height:64px"></svg>
+        <div class="row" style="gap:8px;margin-top:8px"><div class="stat" style="flex:1;background:var(--m3)"><span>PC</span><b id="pPc">-</b></div><div class="stat" style="flex:1;background:var(--m3)"><span>Screens</span><b id="pScr">-</b></div><div class="stat" style="flex:1;background:var(--m3)"><span>Today</span><b id="pKwh">-</b></div></div></div>
+      <div class="mod" style="padding:6px 14px" id="pList"></div>
+      <div class="mod" style="padding:4px 14px"><div class="kv" style="min-height:46px"><span style="color:#fff">Keep the PC awake</span><div class="sw" id="pAwake"></div></div></div>
+      <div class="dim" style="font-size:11.5px;padding:0 6px 4px">Processor and graphics card are measured live. The rest is estimated from your parts (drives and how busy they are, RAM, screen size and brightness, power supply efficiency). A plug-in power meter gives the exact number.</div>
+      <div class="modh" style="margin:6px 4px 0"><b style="font-size:15px">System</b><span></span></div>
+            <div class="mod"><div class="kv"><span>Processor</span><b id="sCpu">0%</b></div><svg class="spark" id="spCpu" viewBox="0 0 60 44" preserveAspectRatio="none"></svg></div>
       <div class="mod" id="sGpuCard"><div class="kv"><span id="sGpuN">GPU</span><b id="sGpu">-</b></div><svg class="spark" id="spGpu" viewBox="0 0 60 44" preserveAspectRatio="none"></svg>
         <div class="kv"><span>Temperature</span><b id="sGpuT">-</b></div><div class="kv"><span>Video memory</span><b id="sVram">-</b></div></div>
       <div class="mod"><div class="kv"><span>Memory</span><b id="sRam">-</b></div><svg class="spark" id="spRam" viewBox="0 0 60 44" preserveAspectRatio="none"></svg><div class="sep"></div><div id="sTop"></div></div>
       <div class="mod"><div class="kv"><span>Disk free</span><b id="sDisk">-</b></div><div class="kv"><span>Up for</span><b id="sUp">-</b></div></div>
-      <div class="modh" style="margin:6px 4px 0"><b style="font-size:15px">Power</b><button class="link" data-u2="power">Settings</button></div>
-      <div class="mod"><div class="kv"><span>CPU + GPU now</span><b class="big disp" id="pTot">-</b></div><svg class="spark" id="spPow" viewBox="0 0 60 44" preserveAspectRatio="none" style="height:70px"></svg></div>
-      <div class="mod"><div class="kv"><span>Processor</span><b id="pCpu">-</b></div><div class="kv" id="pGpuRow"><span>Graphics card</span><b id="pGpu">-</b></div><div class="kv" id="pBatRow"><span>Battery</span><b id="pBat">-</b></div>
-        <div class="sep"></div><div class="kv"><span>Keep the PC awake</span><div class="sw" id="pAwake"></div></div></div>
-      <div class="dim" style="font-size:11.5px;padding:0 6px">Live readings from Windows and the graphics driver. Screens, drives and fans add a bit more.</div>
+      
     </section>
 
     
@@ -486,16 +489,21 @@ function spark(el,data,color,max){if(!el||!data||data.length<2)return;const m=ma
 function renderSys(s){if(!s)return;const ram=s.ramUsed/s.ramTotal*100,g=s.gpu>=0;
   $('#oCpu').textContent=Math.round(s.cpu)+'%';$('#oCpuS').textContent=s.cpuW>=0?W(s.cpuW):' ';
   $('#oGpuT').style.display=g?'':'none';if(g){$('#oGpu').textContent=Math.round(s.gpu)+'%';$('#oGpuS').textContent=Math.round(s.gpuTemp)+'°C'}
-  $('#oPow').textContent=s.totalW>0?Math.round(s.totalW)+' W':'-';$('#oRam').textContent=Math.round(ram)+'%';$('#oRamS').textContent=s.ramUsed.toFixed(1)+' / '+Math.round(s.ramTotal)+' GB';
+  $('#oRam').textContent=Math.round(ram)+'%';$('#oRamS').textContent=s.ramUsed.toFixed(1)+' / '+Math.round(s.ramTotal)+' GB';
   $('#sCpu').textContent=Math.round(s.cpu)+'%'+(s.cpuW>=0?' · '+W(s.cpuW):'');spark($('#spCpu'),s.cpuHist,'#0a84ff',100);
   $('#sGpuCard').style.display=g?'':'none';
   if(g){$('#sGpuN').textContent=s.gpuName||'GPU';$('#sGpu').textContent=Math.round(s.gpu)+'%';$('#sGpuT').textContent=Math.round(s.gpuTemp)+'°C';$('#sVram').textContent=s.vramUsed.toFixed(1)+' / '+Math.round(s.vramTotal)+' GB';spark($('#spGpu'),s.gpuHist,'#30d158',100)}
   $('#sRam').textContent=s.ramUsed.toFixed(1)+' / '+Math.round(s.ramTotal)+' GB';spark($('#spRam'),s.ramHist,'#64d2ff',100);
   if(s.top)$('#sTop').innerHTML=s.top.map(t=>`<div class="kv"><span class="ell">${esc(t.name)}</span><b>${t.mem>=1024?(t.mem/1024).toFixed(1)+' GB':Math.round(t.mem)+' MB'}</b></div>`).join('');
   $('#sDisk').textContent=Math.round(s.diskFree)+' GB of '+Math.round(s.diskTotal)+' GB';$('#sUp').textContent=mins(s.uptime);
-  $('#pTot').textContent=s.totalW>0?W(s.totalW):'-';spark($('#spPow'),s.powHist,'#ff9f0a');$('#pCpu').textContent=s.cpuW>=0?W(s.cpuW):'Not available';
-  $('#pGpuRow').style.display=s.gpuW>=0?'':'none';$('#pGpu').textContent=W(s.gpuW)+(s.gpuLimit>0?' of '+Math.round(s.gpuLimit)+' W':'');
-  $('#pBatRow').style.display=s.battery>=0?'':'none';if(s.battery>=0)$('#pBat').textContent=Math.round(s.battery)+'%'+(s.charging?' · charging':'');}
+}
+
+// whole-setup power
+function renderPower(p){if(!p)return;
+  $('#oPow').textContent='~'+Math.round(p.total)+' W';$('#pTot').textContent='~'+Math.round(p.total)+' W';$('#pPc').textContent=Math.round(p.pc)+' W';$('#pScr').textContent=Math.round(p.screens)+' W';
+  $('#pKwh').textContent=p.kwh>=1?p.kwh.toFixed(2)+' kWh':Math.round(p.kwh*1000)+' Wh';spark($('#spPow'),p.hist,'#ff9f0a');
+  const max=Math.max(...p.parts.map(x=>x.w),1);
+  $('#pList').innerHTML=p.parts.slice().sort((a,b)=>b.w-a.w).map(x=>`<div class="li" style="min-height:44px;padding:7px 2px"><span class="t"><b class="ell">${esc(x.name)} <span class="tag" style="${x.measured?'color:var(--ok);background:#30d15822':'color:var(--sub);background:var(--m3)'}">${x.measured?'MEASURED':'ESTIMATE'}</span></b><span class="ell">${esc(x.note||'')}</span><div class="bar" style="margin-top:5px;height:4px"><i style="width:${x.w/max*100}%;background:${x.measured?'var(--ok)':'#8e8e93'}"></i></div></span><b style="font-variant-numeric:tabular-nums;min-width:52px;text-align:right">${x.w>=10?Math.round(x.w):x.w.toFixed(1)} W</b></div>`).join('')}
 
 // shelf
 function renderShelf(list){if(!list)return;const box=$('#tiles');const key=list.map(f=>f.path).join('|');if(box.dataset.k===key&&box.innerHTML)return;box.dataset.k=key;
@@ -532,14 +540,14 @@ function renderPeek(){
 chrome.webview.addEventListener('message',e=>{const d=e.data;
   switch(d.type){
     case 'init':renderMuted(d.muted);$('#notes').value=d.notes||'';$('#ver').textContent=d.version;for(const p of ['peekOnSong','notifPeek','startWithWindows'])$(`[data-p=${p}]`).classList.toggle('on',!!d.prefs[p]);break;
-    case 'open':isOpen=true;document.body.className='open';if(d.tab&&d.tab!==tab)setTab(d.tab);break;
+    case 'open':isOpen=true;document.body.className='open';if(d.tab&&d.tab!==tab)setTab(d.tab);requestAnimationFrame(()=>$('main').scrollTop=0);break;
     case 'peek':document.body.className='peek';if(Date.now()>peekUntil)peekKind='song';renderPeek();break;
     case 'close':isOpen=false;document.body.className='';tip.style.opacity=0;break;
     case 'toast':toast(d.text);break;
     case 'notif':peekKind='notif';peekNotif=d.n;peekUntil=Date.now()+5000;renderPeek();$('#tbN').classList.add('has');break;
     case 'timerDone':peekKind='timer';peekUntil=Date.now()+3500;renderPeek();break;
     case 'meters':renderMeters(d.items);break;
-    case 'live':S=d;renderMedia(d.media);renderToggles(d.toggles);renderSys(d.sys);renderMixer(d);renderDisplays(d.displays);renderBt(d.bt);renderNotifs(d.notifs,d.notifAllowed);renderMuted(d.muted);
+    case 'live':S=d;renderMedia(d.media);renderToggles(d.toggles);renderSys(d.sys);renderMixer(d);renderDisplays(d.displays);renderBt(d.bt);renderNotifs(d.notifs,d.notifAllowed);renderPower(d.pc);renderMuted(d.muted);
       if(d.clips){clips=d.clips;renderClips()}renderShelf(d.shelf);renderAi(d.ai);if(document.body.classList.contains('peek'))renderPeek();break;
   }});
 setInterval(()=>{const m=S.media;if(m&&m.playing&&m.dur){m.pos=Math.min(m.dur,m.pos+.25);$('#mbar').style.width=(m.pos/m.dur*100)+'%'}},250);

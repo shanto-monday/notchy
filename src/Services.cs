@@ -20,6 +20,8 @@ sealed class Services : IDisposable
     public readonly AiUsage Ai = new();
     public readonly Prefs Prefs = Prefs.Load();
     public readonly Displays Displays = new();
+    public readonly PowerModel Power = new();
+    object pcState;
     public readonly Bluetooth Bt = new();
     public readonly Notifs Notifs;
     int ticks;
@@ -76,7 +78,8 @@ sealed class Services : IDisposable
             muted = Prefs.MutedApps,
             shelf = tab is "shelf" or "overview" ? Shelf.List() : null,
             ai = tab is "ai" or "overview" ? Ai.Read() : null,
-            toggles = new { keepAwake, mic = Audio.MicMuted, dark = DarkMode }
+            toggles = new { keepAwake, mic = Audio.MicMuted, dark = DarkMode },
+            pc = tab is "overview" or "system" ? pcState : null
         };
     }
 
@@ -89,7 +92,22 @@ sealed class Services : IDisposable
 
     public void Tick()
     {
-        if (++ticks % 2 == 0) Notifs.Poll();
+        if (++ticks % 2 == 0)
+        {
+            Notifs.Poll();
+            try
+            {
+                if (ticks == 2) Displays.Refresh(true);
+                var (cw, gw, cp) = Sys.PowerNow();
+                var (parts, pc, screens, total) = Power.Estimate(cw, gw, cp, Displays.Snapshot());
+                pcState = new
+                {
+                    total, pc, screens, kwh = Power.KwhToday, hist = Power.History,
+                    parts = parts.Select(p => new { name = p.Name, w = p.W, measured = p.Measured, note = p.Note }).ToList()
+                };
+            }
+            catch { }
+        }
         if (timerEnd.HasValue && DateTime.Now >= timerEnd.Value)
         {
             timerEnd = null; timerLeft = 0;
@@ -295,7 +313,7 @@ sealed class Services : IDisposable
         }
     }
 
-    public void Dispose() { Displays.Dispose(); Clips.Dispose(); if (keepAwake) SetThreadExecutionState(0x80000000u); }
+    public void Dispose() { Power.Save(); Displays.Dispose(); Clips.Dispose(); if (keepAwake) SetThreadExecutionState(0x80000000u); }
 
     [DllImport("user32.dll")] static extern bool LockWorkStation();
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr w, IntPtr l);
@@ -324,6 +342,20 @@ sealed class SysMon
     readonly Queue<float> cpuHist = new(), gpuHist = new(), netHist = new(), powHist = new(), ramHist = new();
     long rxStart = -1, txStart = -1;
     System.Diagnostics.PerformanceCounter cpuPower; bool cpuPowerTried;
+    readonly object cpuLock = new();
+    public volatile float LastCpuPct;
+    long pIdle, pKern, pUser;
+    // cheap reading for the whole-setup power estimate (runs every 2 s, even when the notch is closed)
+    public (float cpuW, float gpuW, float cpuPct) PowerNow()
+    {
+        GetSystemTimes(out long idle, out long kern, out long user);
+        long di = idle - pIdle, dk = kern - pKern, du = user - pUser; pIdle = idle; pKern = kern; pUser = user;
+        float pct = dk + du > 0 ? Math.Clamp(100f * (dk + du - di) / (dk + du), 0, 100) : 0;
+        InitNv();
+        float g = -1;
+        if (nvDev != IntPtr.Zero) try { if (nvmlDeviceGetPowerUsage(nvDev, out uint mw) == 0) g = mw / 1000f; } catch { }
+        return (CpuWatts(), g, pct);
+    }
     // CPU package power from the Windows "Energy Meter" counters (no admin, no driver)
     float CpuWatts()
     {
@@ -338,7 +370,7 @@ sealed class SysMon
             }
             catch { cpuPower = null; }
         }
-        try { return cpuPower == null ? -1 : cpuPower.NextValue() / 1000f; } catch { return -1; } // milliwatts -> W
+        lock (cpuLock) { try { return cpuPower == null ? -1 : cpuPower.NextValue() / 1000f; } catch { return -1; } } // milliwatts -> W
     }
     static string LocalIp()
     {

@@ -11,7 +11,7 @@ namespace Notchy;
 // ------------------------------------------------------------------ displays
 sealed class Displays : IDisposable
 {
-    sealed class Mon { public string Id = "", Name = "", Device = ""; public bool Primary; public int W, H; public IntPtr Phys; public int Bright = -1, Max = 100; public bool Off; }
+    sealed class Mon { public string Id = "", Name = "", Device = ""; public bool Primary; public int W, H; public IntPtr Phys; public int Bright = -1, Max = 100; public bool Off; public double Diag; }
     readonly List<Mon> mons = new();
     readonly object gate = new();
     DateTime refreshed = DateTime.MinValue;
@@ -29,7 +29,7 @@ sealed class Displays : IDisposable
             {
                 var m = new Mon { Device = s.DeviceName, Primary = s.Primary, W = s.Bounds.Width, H = s.Bounds.Height, Off = keepOff.Contains(s.DeviceName) };
                 m.Id = m.Device.Replace("\\\\.\\", "");
-                m.Name = FriendlyName(s.DeviceName);
+                m.Name = FriendlyName(s.DeviceName, out m.Diag);
                 var hmon = MonitorFromPoint(new POINT { X = s.Bounds.Left + s.Bounds.Width / 2, Y = s.Bounds.Top + s.Bounds.Height / 2 }, 2);
                 if (GetNumberOfPhysicalMonitorsFromHMONITOR(hmon, out uint n) && n > 0)
                 {
@@ -97,8 +97,9 @@ sealed class Displays : IDisposable
     }
 
     // name from the monitor's EDID (registry), e.g. "VY279HGR"
-    static string FriendlyName(string device)
+    static string FriendlyName(string device, out double diag)
     {
+        diag = 0;
         try
         {
             var dd = new DISPLAY_DEVICE { cb = Marshal.SizeOf<DISPLAY_DEVICE>() };
@@ -110,15 +111,23 @@ sealed class Displays : IDisposable
                 {
                     using var k = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\DISPLAY\" + parts[1] + "\\" + parts[2] + @"\Device Parameters");
                     if (k?.GetValue("EDID") is byte[] edid && edid.Length >= 128)
+                    {
+                        if (edid[21] > 0 && edid[22] > 0) diag = Math.Sqrt(edid[21] * edid[21] + edid[22] * edid[22]) / 2.54; // cm -> inches
                         for (int o = 54; o <= 108; o += 18)
                             if (edid[o] == 0 && edid[o + 1] == 0 && edid[o + 3] == 0xFC)
                                 return System.Text.Encoding.ASCII.GetString(edid, o + 5, 13).Split('\n')[0].Trim();
+                    }
                     return parts[1];
                 }
             }
         }
         catch { }
         return device.Replace("\\\\.\\", "");
+    }
+
+    public List<(string name, double diag, int bright, bool off)> Snapshot()
+    {
+        lock (gate) return mons.Select(m => (m.Name, m.Diag, m.Bright < 0 ? -1 : (int)Math.Round(m.Bright * 100.0 / m.Max), m.Off)).ToList();
     }
 
     public void Dispose() { lock (gate) foreach (var m in mons) if (m.Phys != IntPtr.Zero) DestroyPhysicalMonitor(m.Phys); }
