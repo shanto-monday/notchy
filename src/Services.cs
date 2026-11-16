@@ -23,6 +23,7 @@ sealed class Services : IDisposable
     public readonly PowerModel Power = new();
     object pcState;
     public readonly Bluetooth Bt = new();
+    public readonly Spectrum Spec = new();
     public readonly Notifs Notifs;
     int ticks;
     string notes;
@@ -44,6 +45,9 @@ sealed class Services : IDisposable
         notes = File.Exists(NotesPath) ? File.ReadAllText(NotesPath) : "";
         Media.TrackChanged += () => { if (Prefs.PeekOnSong) form.BeginInvoke(form.Peek); };
         Media.Start();
+        // status pop-ups: Bluetooth on/off, low battery, AI limits close to full
+        Bt.OnEvent = (title, body, kind) => { if (Prefs.StatusPeek) form.BeginInvoke(() => form.PeekStatus(new { app = "Bluetooth", title, body, icon = "bt", kind })); };
+        Ai.OnAlert = (title, body) => { if (Prefs.StatusPeek) form.BeginInvoke(() => form.PeekStatus(new { app = "AI usage", title, body, icon = "ai" })); };
     }
 
     public object InitState() => new
@@ -52,7 +56,7 @@ sealed class Services : IDisposable
         version = Program.Version,
         notes,
         hasGpu = Sys.HasGpu,
-        prefs = new { peekOnSong = Prefs.PeekOnSong, notifPeek = Prefs.NotifPeek, startWithWindows = SafeStart() },
+        prefs = new { peekOnSong = Prefs.PeekOnSong, notifPeek = Prefs.NotifPeek, statusPeek = Prefs.StatusPeek, showPill = Prefs.ShowPill, corner = Prefs.Corner, startWithWindows = SafeStart() },
         muted = Prefs.MutedApps
     };
 
@@ -92,6 +96,8 @@ sealed class Services : IDisposable
 
     public void Tick()
     {
+        if (ticks % 6 == 0) Bt.Refresh(false);   // watches connect / disconnect / low battery even when closed
+        if (ticks % 90 == 5) Ai.Refresh(false);  // keeps the usage graph going
         if (++ticks % 2 == 0)
         {
             Notifs.Poll();
@@ -124,8 +130,9 @@ sealed class Services : IDisposable
     {
         switch (cmd)
         {
-            case "media": Media.Do((string)m["action"]); break;
-            case "seek": Media.Seek((double)m["pos"]); break;
+            case "media": Media.Do((string)m["id"], (string)m["action"]); break;
+            case "seek": Media.Seek((string)m["id"], (double)m["pos"]); break;
+            case "mediaFocus": form.Collapse(); Media.Focus((string)m["id"]); break;
             case "master": Audio.SetMaster((float)(double)m["vol"]); break;
             case "masterMute": Audio.ToggleMasterMute(); break;
             case "appVol": Audio.SetApp((string)m["id"], (float)(double)m["vol"], null); break;
@@ -161,6 +168,9 @@ sealed class Services : IDisposable
                     string name = (string)m["name"]; bool on = (bool)m["on"];
                     if (name == "peekOnSong") { Prefs.PeekOnSong = on; Prefs.Save(); }
                     if (name == "notifPeek") { Prefs.NotifPeek = on; Prefs.Save(); }
+                    if (name == "statusPeek") { Prefs.StatusPeek = on; Prefs.Save(); }
+                    if (name == "showPill") { Prefs.ShowPill = on; Prefs.Save(); form.RefreshPill(); }
+                    if (name == "corner") { Prefs.Corner = on; Prefs.Save(); form.SetDock(); }
                     if (name == "startWithWindows") try { Program.StartWithWindows = on; } catch { }
                     break;
                 }
@@ -183,6 +193,8 @@ sealed class Services : IDisposable
             case "notifUnmute": Prefs.MutedApps.RemoveAll(a => string.Equals(a, (string)m["app"], StringComparison.OrdinalIgnoreCase)); Prefs.Save(); break;
             case "notifSettings": Run("ms-settings:privacy-notifications"); break;
             case "expand": form.Expand(false); break;
+            case "grab": form.Grab(); break;
+            case "centreNotch": form.CentreNotch(); break;
             case "openUrl": try { Process.Start(new ProcessStartInfo((string)m["url"]) { UseShellExecute = true }); } catch { } break;
         }
     }
@@ -313,7 +325,7 @@ sealed class Services : IDisposable
         }
     }
 
-    public void Dispose() { Power.Save(); Displays.Dispose(); Clips.Dispose(); if (keepAwake) SetThreadExecutionState(0x80000000u); }
+    public void Dispose() { Power.Save(); Spec.Stop(); Displays.Dispose(); Clips.Dispose(); if (keepAwake) SetThreadExecutionState(0x80000000u); }
 
     [DllImport("user32.dll")] static extern bool LockWorkStation();
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr w, IntPtr l);
@@ -327,6 +339,10 @@ sealed class Prefs
 {
     public bool PeekOnSong { get; set; } = true;
     public bool NotifPeek { get; set; } = true;
+    public bool StatusPeek { get; set; } = true;
+    public bool ShowPill { get; set; } = true;     // false = ghost: bar hidden until the mouse comes near
+    public double NotchPos { get; set; } = 0.5;
+    public bool Corner { get; set; }               // true = hot corner bottom-left, panel rises from the bottom    // notch centre as a share of the screen width
     public List<string> MutedApps { get; set; } = new();
     static string P => Path.Combine(Program.DataDir, "prefs.json");
     public static Prefs Load() { try { return JsonSerializer.Deserialize<Prefs>(File.ReadAllText(P)) ?? new(); } catch { return new(); } }
@@ -566,7 +582,7 @@ sealed class Clips : NativeWindow, IDisposable
 
     public object List() => items.OrderByDescending(i => i.Pinned).Take(80).Select(i => new
     {
-        id = i.Id, kind = i.Kind, text = i.Text.Length > 400 ? i.Text[..400] : i.Text, thumb = i.Thumb, pinned = i.Pinned,
+        id = i.Id, kind = i.Kind, len = i.Text.Length, text = i.Text.Length > 400 ? i.Text[..400] : i.Text, thumb = i.Thumb, pinned = i.Pinned,
         ago = Ago(i.At)
     }).ToList();
 
@@ -680,6 +696,22 @@ sealed class AiUsage
     DateTime at = DateTime.MinValue;
     bool busy;
     static readonly string Home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    public Action<string, string> OnAlert;       // limit at 90% or more
+    readonly HashSet<string> alerted = new();
+    static readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(10) };
+
+    // limits as the plan counts them, plus a usage history for the graphs
+    public sealed class Limit { public string Name { get; set; } public double Pct { get; set; } public DateTime? ResetsAt { get; set; } }
+    public sealed class Sample { public DateTime T { get; set; } public double? Cl { get; set; } public double? Cx { get; set; } }
+    sealed class Store { public List<Sample> Hist { get; set; } = new(); public List<Limit> Claude { get; set; } = new(); public DateTime ClaudeAt { get; set; } public string Plan { get; set; } = ""; }
+    readonly Store store;
+    static string StorePath => Path.Combine(Program.DataDir, "ai-usage.json");
+
+    public AiUsage()
+    {
+        try { store = JsonSerializer.Deserialize<Store>(File.ReadAllText(StorePath)); } catch { }
+        store ??= new Store();
+    }
 
     public object Read() { Refresh(false); return cached; }
 
@@ -687,12 +719,104 @@ sealed class AiUsage
     {
         if (busy || (!force && (DateTime.Now - at).TotalSeconds < 60)) return;
         busy = true;
-        Task.Run(() =>
+        Task.Run(async () =>
         {
-            try { cached = new { claude = Claude(), codex = Codex() }; at = DateTime.Now; }
-            catch { }
+            try
+            {
+                var claudeLimits = await ClaudeLimits();
+                var codex = Codex(out var codexLimits);
+                bool claudeFresh = (DateTime.Now - store.ClaudeAt).TotalMinutes < 5;
+                double? cl = claudeFresh ? claudeLimits?.FirstOrDefault()?.Pct : null, cx = codexLimits.FirstOrDefault()?.Pct;
+                List<Sample> h;
+                var since = DateTime.Now.AddHours(-6);
+                lock (store)
+                {
+                    store.Hist.Add(new Sample { T = DateTime.Now, Cl = cl, Cx = cx });
+                    store.Hist.RemoveAll(x => x.T < DateTime.Now.AddHours(-24));
+                    try { File.WriteAllText(StorePath, JsonSerializer.Serialize(store)); } catch { }
+                    h = store.Hist.Where(x => x.T >= since).ToList();
+                }
+                object L(IEnumerable<Limit> ls) => ls.Select(l => new
+                {
+                    name = l.Name, pct = l.Pct,
+                    resetsIn = l.ResetsAt.HasValue ? Math.Max(0, (l.ResetsAt.Value - DateTime.Now).TotalMinutes) : -1,
+                    resetsAt = l.ResetsAt.HasValue ? When(l.ResetsAt.Value) : ""
+                }).ToList();
+                cached = new
+                {
+                    claude = Claude(),
+                    claudeLimits = L(store.Claude),
+                    claudeStale = (DateTime.Now - store.ClaudeAt).TotalMinutes > 15,
+                    claudeAt = store.ClaudeAt == default ? "" : store.ClaudeAt.ToString("h:mm tt"),
+                    plan = store.Plan,
+                    codex,
+                    codexLimits = L(codexLimits),
+                    clHist = h.Where(x => x.Cl.HasValue).Select(x => new { ago = (DateTime.Now - x.T).TotalMinutes, v = x.Cl.Value }).ToList(),
+                    cxHist = h.Where(x => x.Cx.HasValue).Select(x => new { ago = (DateTime.Now - x.T).TotalMinutes, v = x.Cx.Value }).ToList()
+                };
+                at = DateTime.Now;
+                Alerts("Claude Code", store.Claude);
+                Alerts("Codex", codexLimits);
+            }
+            catch (Exception e) { Dbg.Log("ai " + e.Message); }
             finally { busy = false; }
         });
+    }
+
+    static string When(DateTime t)
+    {
+        if (t.Date == DateTime.Today) return t.ToString("h:mm tt");
+        if (t.Date == DateTime.Today.AddDays(1)) return "tomorrow " + t.ToString("h:mm tt");
+        return t.ToString("ddd h:mm tt");
+    }
+
+    void Alerts(string who, List<Limit> ls)
+    {
+        foreach (var l in ls)
+        {
+            if (l.Pct < 90 || l.ResetsAt is not DateTime r || r < DateTime.Now) continue;
+            string key = who + l.Name + r.ToString("yyyyMMddHH");
+            if (!alerted.Add(key)) continue;
+            OnAlert?.Invoke(who + " · " + Math.Round(l.Pct) + "% used", l.Name + " · resets " + When(r));
+        }
+    }
+
+    // the plan's own numbers, from the same place Claude Code's /usage reads them (the token stays on this PC and goes only to Anthropic)
+    async Task<List<Limit>> ClaudeLimits()
+    {
+        try
+        {
+            var cred = JsonNode.Parse(File.ReadAllText(Path.Combine(Home, ".claude", ".credentials.json")))?["claudeAiOauth"];
+            string token = (string)cred?["accessToken"];
+            long exp = (long?)cred?["expiresAt"] ?? 0;
+            if (string.IsNullOrEmpty(token) || DateTimeOffset.FromUnixTimeMilliseconds(exp) < DateTimeOffset.Now) return store.Claude; // Claude Code renews it on next use
+            using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.anthropic.com/api/oauth/usage");
+            req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + token);
+            req.Headers.TryAddWithoutValidation("anthropic-beta", "oauth-2025-04-20");
+            req.Headers.TryAddWithoutValidation("User-Agent", "notchy");
+            using var res = await http.SendAsync(req);
+            if (!res.IsSuccessStatusCode) { Dbg.Log("claude limits http " + (int)res.StatusCode); return store.Claude; }
+            var j = JsonNode.Parse(await res.Content.ReadAsStringAsync());
+            var list = new List<Limit>();
+            static DateTime? T(JsonNode n) => n != null && DateTime.TryParse((string)n, null, System.Globalization.DateTimeStyles.RoundtripKind, out var d) ? d.ToLocalTime() : null;
+            if (j?["limits"] is JsonArray arr && arr.Count > 0)
+                foreach (var x in arr)
+                {
+                    string kind = (string)x["kind"] ?? "";
+                    string model = (string)x["scope"]?["model"]?["display_name"];
+                    string name = kind == "session" ? "5-hour session" : kind == "weekly_all" ? "This week · all models" : model != null ? "This week · " + model : kind.Replace('_', ' ');
+                    list.Add(new Limit { Name = name, Pct = (double?)x["percent"] ?? 0, ResetsAt = T(x["resets_at"]) });
+                }
+            else
+            {
+                void Add(string key, string name) { var n = j?[key]; if (n is JsonObject) list.Add(new Limit { Name = name, Pct = (double?)n["utilization"] ?? 0, ResetsAt = T(n["resets_at"]) }); }
+                Add("five_hour", "5-hour session"); Add("seven_day", "This week · all models"); Add("seven_day_opus", "This week · Opus"); Add("seven_day_sonnet", "This week · Sonnet");
+            }
+            string plan = (string)cred?["subscriptionType"] ?? "";
+            lock (store) { store.Claude = list; store.ClaudeAt = DateTime.Now; store.Plan = plan.Length > 0 ? char.ToUpper(plan[0]) + plan[1..] : ""; }
+            return list;
+        }
+        catch (Exception e) { Dbg.Log("claude limits " + e.Message); return store.Claude; }
     }
 
     static readonly Regex MsgId = new("\"id\":\"(msg_[A-Za-z0-9]+)\"");
@@ -749,8 +873,9 @@ sealed class AiUsage
         return new { outTokens = outT, inTokens = inT, cacheTokens = cacheT, msgs, out5, msgs5, resetsIn };
     }
 
-    static object Codex()
+    static object Codex(out List<Limit> lim)
     {
+        lim = new List<Limit>();
         string root = Path.Combine(Environment.GetEnvironmentVariable("CODEX_HOME") ?? Path.Combine(Home, ".codex"), "sessions");
         if (!Directory.Exists(root)) return null;
         var files = new DirectoryInfo(root).EnumerateFiles("*.jsonl", SearchOption.AllDirectories)
@@ -790,6 +915,17 @@ sealed class AiUsage
             if (left <= 0) { used = 0; left = (double?)w["window_minutes"] ?? 0; } // window ended: fresh start
             return new { used, windowMin = (double?)w["window_minutes"] ?? 0, resetsIn = left };
         }
+        var l2 = new List<Limit>();
+        void Add(JsonNode w, string name)
+        {
+            if (w == null) return;
+            double used = (double?)w["used_percent"] ?? 0;
+            DateTime? r = w["resets_at"] != null ? DateTimeOffset.FromUnixTimeSeconds((long)w["resets_at"]).LocalDateTime : null;
+            if (r.HasValue && r < DateTime.Now) { used = 0; r = null; } // window ended: fresh start
+            l2.Add(new Limit { Name = name, Pct = used, ResetsAt = r });
+        }
+        Add(limits?["primary"], "5-hour session"); Add(limits?["secondary"], "This week");
+        lim = l2;
         return new { primary = W(limits?["primary"]), weekly = W(limits?["secondary"]), today, sessions };
     }
 

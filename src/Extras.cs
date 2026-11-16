@@ -18,7 +18,7 @@ sealed class Displays : IDisposable
 
     public void Refresh(bool force = false)
     {
-        if (!force && (DateTime.Now - refreshed).TotalSeconds < 20) return;
+        if (!force && (DateTime.Now - refreshed).TotalSeconds < 8) return;
         refreshed = DateTime.Now;
         lock (gate)
         {
@@ -39,6 +39,8 @@ sealed class Displays : IDisposable
                         m.Phys = arr[0].h;
                         for (int i = 1; i < arr.Length; i++) DestroyPhysicalMonitor(arr[i].h);
                         if (GetVCPFeatureAndVCPFeatureReply(m.Phys, 0x10, IntPtr.Zero, out uint cur, out uint max) && max > 0) { m.Bright = (int)cur; m.Max = (int)max; }
+                        // power mode as the monitor reports it, so a screen turned off with its own button shows as off
+                        if (GetVCPFeatureAndVCPFeatureReply(m.Phys, 0xD6, IntPtr.Zero, out uint pw, out _)) m.Off = pw != 1;
                     }
                 }
                 mons.Add(m);
@@ -151,6 +153,9 @@ sealed class Bluetooth
     const string BatteryKey = "{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2"; // DEVPKEY_Bluetooth_Battery
     object cached = new List<object>();
     DateTime at = DateTime.MinValue; bool busy;
+    public Action<string, string, string> OnEvent;     // (title, body, kind) for the notch pop-up
+    Dictionary<string, (bool on, int bat)> last;        // null until the first scan
+    readonly HashSet<string> lowWarned = new();
 
     public object Read() { Refresh(false); return cached; }
 
@@ -208,6 +213,7 @@ sealed class Bluetooth
                     }
                     catch { }
                 }
+                Watch(list);
                 cached = list.OrderByDescending(x => x.on).ThenBy(x => x.name)
                     .Select(x => (object)new { name = x.name, connected = x.on, battery = x.bat, kind = x.kind }).ToList();
                 at = DateTime.Now;
@@ -215,6 +221,24 @@ sealed class Bluetooth
             catch { }
             finally { busy = false; }
         });
+    }
+
+    void Watch(List<(string name, bool on, int bat, string kind)> list)
+    {
+        var now = list.GroupBy(x => x.name).ToDictionary(g => g.Key, g => (on: g.Any(x => x.on), bat: g.Max(x => x.bat))); var kinds = list.GroupBy(x => x.name).ToDictionary(g => g.Key, g => g.First().kind);
+        if (last != null)
+            foreach (var (name, st) in now)
+            {
+                var was = last.TryGetValue(name, out var w) ? w : (on: false, bat: -1);
+                if (st.on && !was.on) OnEvent?.Invoke(name, "Connected" + (st.bat >= 0 ? " · battery " + st.bat + "%" : ""), kinds[name]);
+                else if (!st.on && was.on) OnEvent?.Invoke(name, "Disconnected", kinds[name]);
+            }
+        foreach (var (name, st) in now)
+        {
+            if (st.on && st.bat >= 0 && st.bat < 20) { if (lowWarned.Add(name)) OnEvent?.Invoke(name, "Battery low · " + st.bat + "%. Charge it soon.", kinds[name]); }
+            else if (st.bat >= 25 || !st.on) lowWarned.Remove(name);
+        }
+        last = now;
     }
 
     static readonly System.Text.RegularExpressions.Regex Generic = new(@"^(Bluetooth Device|Microsoft Bluetooth|Standard Serial|RFCOMM|Spp\d*$|Bluetooth LE Generic|Generic Attribute|Device Information Service|BESOTA|Wireless_Device|Bluetooth Radio)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
